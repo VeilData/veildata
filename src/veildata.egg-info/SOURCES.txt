@@ -1,0 +1,8 @@
+LICENSE
+README.md
+pyproject.toml
+src/veildata/__init__.py
+src/veildata.egg-info/PKG-INFO
+src/veildata.egg-info/SOURCES.txt
+src/veildata.egg-info/dependency_links.txt
+src/veildata.egg-info/top_level.txt
