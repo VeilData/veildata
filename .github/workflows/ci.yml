@@ -2,40 +2,48 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  test:
+  core-tests:
+    name: Core Tests
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install uv
-        run: pip install uv
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v1
 
       - name: Sync dependencies
-        run: uv sync
+        run: uv sync --frozen
 
-      - name: Lint and format
+      - name: Lint & format
         run: |
           uv run ruff check .
+          uv run ruff format --check .
           uv run black --check .
 
-      - name: Build package
-        run: uv build
+      - name: Run tests (core only)
+        run: uv run pytest -q --disable-warnings
 
-      - name: Run tests
-        run: |
-          if [ -d "tests" ]; then
-            uv run pytest -q
-          else
-            echo "No tests found — skipping."
-          fi
+  full-tests:
+    name: Full Tests (with extras)
+    runs-on: ubuntu-latest
+    needs: core-tests
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Sync with all extras
+        run: uv sync --extra all --frozen
+
+      - name: Run tests (all extras)
+        run: uv run pytest -q --disable-warnings
