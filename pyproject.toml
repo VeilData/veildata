@@ -31,7 +31,8 @@
 
  [tool.ruff.format]
  quote-style = "double"
- indent-width = 4
+ indent-style = "space"
+ line-ending = "auto"
 
  [tool.black]
  line-length = 88
@@ -39,3 +40,8 @@
 
  [tool.setuptools]
  packages = { find = { where = ["src"] } }
+
+ [dependency-groups]
+ dev = [
+   "pytest>=8.3.5",
+ ]
