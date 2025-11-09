@@ -70,3 +70,8 @@ text = "Email Jane at jane.doe@example.com"
 print(masker(text))
 # -> Email [REDACTED] at [REDACTED]
 ```
+
+
+### 🛠️ Continuous Integration
+- CI: .github/workflows/ci.yml runs linting, formatting, build, and tests on every push or PR.
+- Publish: .github/workflows/publish.yml auto-publishes to PyPI when a new v* tag or release is created.
