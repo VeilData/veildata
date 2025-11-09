@@ -30,3 +30,4 @@
  # PyPI tokens/config
  .pypirc
 
+.idea/
