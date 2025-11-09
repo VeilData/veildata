@@ -1,6 +1,6 @@
 import pytest
 
-from veildata.core import Module
+from src.veildata.core import Module
 
 
 class DummyModule(Module):
