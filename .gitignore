@@ -17,6 +17,7 @@
  sdist/
  var/
  *.egg-info/
+ **/*.egg-info/
  .installed.cfg
  *.egg
 
@@ -26,8 +27,10 @@
  env/
  venv/
  ENV/
+ .uv-cache/
  
  # PyPI tokens/config
  .pypirc
 
 .idea/
+
