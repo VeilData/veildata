@@ -20,6 +20,21 @@
    "Operating System :: OS Independent",
  ]
 
+ [project.optional-dependencies]
+ spacy = [
+   "spacy>=3.5.0",
+ ]
+ bert = [
+   "torch>=2.0.0",
+   "transformers>=4.30.0",
+ ]
+ all = [
+   "spacy>=3.5.0",
+   "torch>=2.0.0",
+   "transformers>=4.30.0",
+ ]
+
+
  [tool.uv]
  index-url = "https://pypi.org/simple"
  cache-dir = ".uv-cache"
