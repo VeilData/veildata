@@ -1,6 +1,6 @@
 import spacy
 
-from src.veildata.core import Module
+from veildata.core import Module
 
 
 class SpacyNERMasker(Module):

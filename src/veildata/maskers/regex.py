@@ -1,6 +1,6 @@
 import re
 
-from src.veildata.core import Module
+from veildata.core import Module
 
 
 class RegexMasker(Module):

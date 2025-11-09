@@ -1,7 +1,7 @@
 import torch
 from transformers import AutoModelForTokenClassification, AutoTokenizer
 
-from src.veildata.core import Module
+from veildata.core import Module
 
 
 class BERTNERMasker(Module):
