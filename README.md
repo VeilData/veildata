@@ -31,15 +31,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 
-**Test Your Setup**
-```bash
-uv run python examples/quickstart.py
-```
-
 ### Examples
 Regex-based Masking
 ```python
-from veildata import Compose, RegexMasker
+from veildata import Compose, RegexMasker, TokenStore
 
 text = "Contact John Doe at john.doe@gmail.com or call 123-456-7890."
 masker = Compose([
@@ -49,6 +44,10 @@ masker = Compose([
 
 print(masker(text))
 # -> Contact John Doe at [REDACTED] or call [REDACTED].
+
+store = TokenStore()
+store.bulk_record({"[REDACTED_1]": "john.doe@example.com"})
+
 ```
 
 spaCy Named Entity Recognition
