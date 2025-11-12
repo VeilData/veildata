@@ -43,6 +43,9 @@
    "transformers>=4.30.0",
  ]
 
+ [project.scripts]
+ veildata = "veildata.cli:main"
+
 
  [tool.uv]
  index-url = "https://pypi.org/simple"
