@@ -19,7 +19,7 @@ jobs:
         uses: astral-sh/setup-uv@v1
 
       - name: Sync dependencies
-        run: uv sync --group dev --frozen || (uv lock && uv sync --group dev)
+        run: uv sync -G dev --frozen || (uv lock && uv sync --extra all -G dev)
 
       - name: Lint & format
         run: |
