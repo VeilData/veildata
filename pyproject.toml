@@ -7,8 +7,13 @@
  version = "0.0.1"
  description = "Framework for masking and unmasking PII."
  readme = "README.md"
- requires-python = ">=3.8"
- dependencies = ["pre-commit", "black", "ruff"]
+ requires-python = ">=3.9"
+ dependencies = [
+    "pre-commit",
+    "black",
+    "ruff",
+    "en-core-web-sm",
+]
  license = {text = "MIT"}
  authors = [
    { name = "Eric" }
@@ -22,14 +27,18 @@
 
  [project.optional-dependencies]
  spacy = [
-   "spacy>=3.5.0",
- ]
+  "spacy==3.8.7",
+  "thinc>=8.3.4,<8.4.0",
+  "numpy>=1.26.0,<2.0.0",
+]
  bert = [
    "torch>=2.0.0",
    "transformers>=4.30.0",
  ]
  all = [
-   "spacy>=3.5.0",
+   "spacy==3.8.7",
+   "thinc>=8.3.4,<8.4.0",
+   "numpy>=1.26.0,<2.0.0",
    "torch>=2.0.0",
    "transformers>=4.30.0",
  ]
@@ -38,6 +47,9 @@
  [tool.uv]
  index-url = "https://pypi.org/simple"
  cache-dir = ".uv-cache"
+
+[tool.uv.sources]
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0.tar.gz" }
 
  [tool.ruff]
  line-length = 88
