@@ -49,7 +49,7 @@ jobs:
           key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml', 'uv.lock') }}
 
       - name: Sync with all extras
-        run: uv sync --extra all --frozen || (uv lock && uv sync)
+        run: uv lock && uv sync
 
       - name: Run tests (all extras)
         run: uv run pytest -q --disable-warnings
