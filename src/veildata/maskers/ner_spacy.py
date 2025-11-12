@@ -16,7 +16,7 @@ class SpacyNERMasker(Module):
         self,
         model: str = "en_core_web_sm",
         entities: list[str] | None = None,
-        mask_token: str = "[REDACTED]",
+        mask_token: str = "[REDACTED_{counter}]",
         store: TokenStore | None = None,
     ) -> None:
         super().__init__()
@@ -42,7 +42,7 @@ class SpacyNERMasker(Module):
         for ent in reversed(doc.ents):
             if ent.label_ in self.entities:
                 self.counter += 1
-                token = f"{self.mask_token}_{self.counter}"
+                token = self.mask_token.format(counter=self.counter)
                 if self.store:
                     self.store.record(token, ent.text)
                 redacted = redacted[: ent.start_char] + token + redacted[ent.end_char :]
