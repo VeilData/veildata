@@ -18,6 +18,9 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v1
 
+      - name: Upgrade uv to latest
+        run: pip install -U uv
+
       - name: Sync dependencies
         run: uv sync -G dev --frozen || (uv lock && uv sync --extra all -G dev)
 
