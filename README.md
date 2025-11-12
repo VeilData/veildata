@@ -1,5 +1,5 @@
 # 🕶️ VeilData
-**A lightweight, PyTorch-inspired framework for masking and unmasking Personally Identifiable Information (PII).**
+**A lightweight framework for masking and unmasking Personally Identifiable Information (PII).**
 
 [![CI](https://github.com/VeilData/veildata/actions/workflows/ci.yml/badge.svg)](https://github.com/VeilData/veildata/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/veildata.svg)](https://pypi.org/project/veildata/)
