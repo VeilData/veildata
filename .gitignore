@@ -19,6 +19,7 @@
  var/
  *.egg-info/
  **/*.egg-info/
+ src/**/*.egg-info/
  .installed.cfg
  *.egg
 
