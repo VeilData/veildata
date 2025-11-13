@@ -2,77 +2,78 @@
  requires = ["setuptools>=69", "wheel"]
  build-backend = "setuptools.build_meta"
 
- [project]
- name = "veildata"
- version = "0.0.1"
- description = "Framework for masking and unmasking PII."
- readme = "README.md"
- requires-python = ">=3.9"
- dependencies = [
+[project]
+name = "veildata"
+version = "0.0.1"
+description = "Framework for masking and unmasking PII."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
     "pre-commit",
     "black",
     "ruff",
     "en-core-web-sm",
+    "typer"
 ]
- license = {text = "MIT"}
- authors = [
-   { name = "Eric" }
- ]
- keywords = ["veildata", "pii", "redaction", "privacy", "ai", "nlp"]
- classifiers = [
-   "Programming Language :: Python :: 3",
-   "License :: OSI Approved :: MIT License",
-   "Operating System :: OS Independent",
- ]
+license = {text = "MIT"}
+authors = [
+    { name = "Eric" }
+]
+keywords = ["veildata", "pii", "redaction", "privacy", "ai", "nlp"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
- [project.optional-dependencies]
- spacy = [
+[project.optional-dependencies]
+spacy = [
   "spacy==3.8.7",
   "thinc>=8.3.4,<8.4.0",
   "numpy>=1.26.0,<2.0.0",
 ]
- bert = [
-   "torch>=2.0.0",
-   "transformers>=4.30.0",
- ]
- all = [
-   "spacy==3.8.7",
-   "thinc>=8.3.4,<8.4.0",
-   "numpy>=1.26.0,<2.0.0",
-   "torch>=2.0.0",
-   "transformers>=4.30.0",
-   "pytest>=8.3.5",
- ]
+bert = [
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+]
+all = [
+    "spacy==3.8.7",
+    "thinc>=8.3.4,<8.4.0",
+    "numpy>=1.26.0,<2.0.0",
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    "pytest>=8.3.5",
+]
 
- [project.scripts]
- veildata = "veildata.cli:main"
+[project.scripts]
+veildata = "veildata.cli:main"
 
 
- [tool.uv]
- index-url = "https://pypi.org/simple"
- cache-dir = ".uv-cache"
+[tool.uv]
+index-url = "https://pypi.org/simple"
+cache-dir = ".uv-cache"
 
 [tool.uv.sources]
 en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0.tar.gz" }
 
- [tool.ruff]
- line-length = 88
- select = ["E", "F", "I"]
- ignore = ["E501"]
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I"]
+ignore = ["E501"]
 
- [tool.ruff.format]
- quote-style = "double"
- indent-style = "space"
- line-ending = "auto"
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
 
- [tool.black]
- line-length = 88
- target-version = ['py38']
+[tool.black]
+line-length = 88
+target-version = ['py38']
 
- [tool.setuptools]
- packages = { find = { where = ["src"] } }
+[tool.setuptools]
+packages = { find = { where = ["src"] } }
 
- [dependency-groups]
- dev = [
-   "pytest>=8.3.5",
- ]
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]

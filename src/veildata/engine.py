@@ -6,6 +6,7 @@ import yaml
 from veildata.maskers.ner_bert import BERTNERMasker
 from veildata.maskers.ner_spacy import SpacyNERMasker
 from veildata.maskers.regex import RegexMasker
+from veildata.revealers import TokenStore
 
 MASKER_REGISTRY: Dict[str, Type] = {
     "regex": RegexMasker,
@@ -50,6 +51,20 @@ def build_masker(method: str, config_path: Optional[str] = None, verbose: bool =
 
     masker_cls = MASKER_REGISTRY[method]
     return masker_cls(config, verbose=verbose)
+
+
+def build_unmasker(store_path: str):
+    """
+    Build a callable unmasker using a saved TokenStore mapping.
+
+    Args:
+        store_path: Path to a JSON file created by TokenStore.save().
+
+    Returns:
+        A callable that takes masked text and returns unmasked text.
+    """
+    store = TokenStore.load(store_path)
+    return store.unmask
 
 
 class CompositeMasker:

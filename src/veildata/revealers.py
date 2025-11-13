@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import Dict
 
 
@@ -36,3 +38,13 @@ class TokenStore:
     def mappings(self) -> Dict[str, str]:
         """Return a copy of the internal mapping."""
         return dict(self._mapping)
+
+    def save(self, path: str):
+        Path(path).write_text(json.dumps(self.mapping, indent=2))
+
+    @classmethod
+    def load(cls, path: str):
+        store = cls()
+        store.mapping = json.loads(Path(path).read_text())
+        store.counter = len(store.mapping)
+        return store
