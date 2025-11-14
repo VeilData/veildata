@@ -63,5 +63,5 @@ def test_email_regex_masking(tmp_path):
     )
     assert result.returncode == 0
     masked = output_file.read_text()
-    assert "john@example.com" in masked
-    assert "555-123-4567" not in masked
+    assert "john@example.com" not in masked
+    assert "555-123-4567" in masked
