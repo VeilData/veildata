@@ -11,7 +11,7 @@ class RegexMasker(Module):
     def __init__(
         self,
         pattern: str,
-        mask_token: str = "[REDACTED]",
+        mask_token: str = "[REDACTED_{counter}]",
         store: TokenStore | None = None,
     ) -> None:
         super().__init__()
@@ -23,7 +23,7 @@ class RegexMasker(Module):
     def forward(self, text: str) -> str:
         def _replace(match):
             self.counter += 1
-            token = f"{self.mask_token}_{self.counter}"
+            token = self.mask_token.format(counter=self.counter)
             if self.store:
                 self.store.record(token, match.group(0))
             return token
