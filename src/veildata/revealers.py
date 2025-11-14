@@ -40,7 +40,7 @@ class TokenStore:
         return dict(self._mapping)
 
     def save(self, path: str):
-        Path(path).write_text(json.dumps(self.mapping, indent=2))
+        Path(path).write_text(json.dumps(self.mappings, indent=2))
 
     @classmethod
     def load(cls, path: str):

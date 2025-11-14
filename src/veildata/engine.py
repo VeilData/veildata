@@ -1,47 +1,70 @@
 import json
-from typing import Dict, List, Optional, Type
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 import yaml
 
-from veildata.maskers.ner_bert import BERTNERMasker
-from veildata.maskers.ner_spacy import SpacyNERMasker
-from veildata.maskers.regex import RegexMasker
+from veildata.compose import Compose
 from veildata.revealers import TokenStore
 
-MASKER_REGISTRY: Dict[str, Type] = {
-    "regex": RegexMasker,
-    "ner_spacy": SpacyNERMasker,
-    "ner_bert": BERTNERMasker,
+MASKER_REGISTRY: Dict[str, str] = {
+    "regex": "veildata.maskers.regex.RegexMasker",
+    "ner_spacy": "veildata.maskers.ner_spacy.SpacyNERMasker",
+    "ner_bert": "veildata.maskers.ner_bert.BERTNERMasker",
 }
 
 
 def list_available_maskers() -> List[str]:
-    """Return the available registered masking methods."""
+    """Return available masking engines."""
     return list(MASKER_REGISTRY.keys()) + ["all"]
 
 
-def load_config(config_path: Optional[str]) -> Optional[dict]:
+def load_config(config_path: Optional[str]) -> dict:
     if not config_path:
-        return None
-    with open(config_path, "r") as f:
-        if config_path.endswith(".json"):
-            return json.load(f)
-        return yaml.safe_load(f)
+        return {}
+    path = Path(config_path)
+    text = path.read_text()
+    if config_path.endswith(".json"):
+        return json.loads(text)
+    return yaml.safe_load(text)
 
 
-def build_masker(method: str, config_path: Optional[str] = None, verbose: bool = False):
-    """Factory to create a masker based on the method name."""
+def _lazy_import(dotted_path: str):
+    """
+    Import a class by dotted string path:
+    e.g. "veildata.maskers.regex.RegexMasker"
+    """
+    module_path, cls_name = dotted_path.rsplit(".", 1)
+    module = __import__(module_path, fromlist=[cls_name])
+    return getattr(module, cls_name)
+
+
+def build_masker(
+    method: str,
+    config_path: Optional[str] = None,
+    verbose: bool = False,
+) -> Tuple[Compose, TokenStore]:
+    """
+    Build a masking pipeline (Compose) and a shared TokenStore.
+
+    Returns:
+        (Compose(maskers), TokenStore)
+    """
     config = load_config(config_path)
     method = method.lower()
+    store = TokenStore()
+
+    def vprint(msg: str):
+        if verbose:
+            print(f"[veildata] {msg}")
 
     if method == "all":
-        return CompositeMasker(
-            [
-                RegexMasker(**config),
-                SpacyNERMasker(**config),
-                BERTNERMasker(**config),
-            ]
-        )
+        maskers = []
+        for key, dotted_path in MASKER_REGISTRY.items():
+            cls = _lazy_import(dotted_path)
+            vprint(f"Loading masker: {key}")
+            maskers.append(cls(store=store, **config))
+        return Compose(maskers), store
 
     if method not in MASKER_REGISTRY:
         raise ValueError(
@@ -49,46 +72,20 @@ def build_masker(method: str, config_path: Optional[str] = None, verbose: bool =
             f"Available: {', '.join(list_available_maskers())}"
         )
 
-    masker_cls = MASKER_REGISTRY[method]
-    return masker_cls(config, verbose=verbose)
+    cls_path = MASKER_REGISTRY[method]
+    cls = _lazy_import(cls_path)
+    vprint(f"Loading masker: {method}")
+
+    masker = cls(store=store, **config)
+    return Compose([masker]), store
 
 
 def build_unmasker(store_path: str):
     """
-    Build a callable unmasker using a saved TokenStore mapping.
-
-    Args:
-        store_path: Path to a JSON file created by TokenStore.save().
+    Build a callable unmasker from a saved TokenStore mapping.
 
     Returns:
-        A callable that takes masked text and returns unmasked text.
+        callable(text: str) -> str
     """
     store = TokenStore.load(store_path)
     return store.unmask
-
-
-class CompositeMasker:
-    """Apply multiple maskers sequentially."""
-
-    def __init__(self, maskers: List):
-        self.maskers = maskers
-
-    def mask(self, text: str, dry_run: bool = False) -> str:
-        for masker in self.maskers:
-            text = masker.mask(text, dry_run=dry_run)
-        return text
-
-
-class Unmasker:
-    """Simple reversible unmasking utility."""
-
-    def __init__(self, mapping_path: Optional[str] = None):
-        self.mapping = {}
-        if mapping_path:
-            with open(mapping_path, "r") as f:
-                self.mapping = json.load(f)
-
-    def unmask(self, text: str) -> str:
-        for token, original in self.mapping.items():
-            text = text.replace(token, original)
-        return text

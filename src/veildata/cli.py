@@ -2,7 +2,7 @@ from typing import Optional
 
 import typer
 
-from veildata.engine import build_masker, build_unmasker, list_available_maskers
+from veildata.engine import list_available_maskers
 
 app = typer.Typer(help="VeilData — configurable PII masking and unmasking CLI")
 
@@ -13,7 +13,7 @@ def mask(
     output: Optional[str] = typer.Option(
         None, "--output", "-o", help="Write masked text to this file"
     ),
-    config: Optional[str] = typer.Option(
+    config_path: Optional[str] = typer.Option(
         None, "--config", "-c", help="Path to YAML/JSON config file"
     ),
     method: str = typer.Option(
@@ -30,8 +30,10 @@ def mask(
         None, "--store", help="Path to save reversible TokenStore mapping"
     ),
 ):
+    from veildata.engine import build_masker
+
     """Mask PII in text or files using a configurable engine."""
-    masker, store = build_masker(method, config=config, verbose=verbose)
+    masker, store = build_masker(method, config_path=config_path, verbose=verbose)
 
     # Read input
     try:
@@ -67,6 +69,8 @@ def unmask(
         ..., "--store", "-s", help="Path to stored TokenStore mapping"
     ),
 ):
+    from veildata.engine import build_unmasker
+
     """Unmask text using a stored TokenStore."""
     unmasker = build_unmasker(store_path)
 
@@ -92,4 +96,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    sys.exit(main())

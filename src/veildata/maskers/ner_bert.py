@@ -2,6 +2,7 @@ import torch
 from transformers import AutoModelForTokenClassification, AutoTokenizer
 
 from veildata.core import Module
+from veildata.revealers import TokenStore
 
 
 class BERTNERMasker(Module):
@@ -10,12 +11,15 @@ class BERTNERMasker(Module):
     def __init__(
         self,
         model_name: str = "dslim/bert-base-NER",
-        mask_token: str = "[REDACTED]",
+        mask_token: str = "[REDACTED_{counter}]",
+        store: TokenStore | None = None,
         device: str | None = None,
     ) -> None:
         super().__init__()
         self.model_name = model_name
         self.mask_token = mask_token
+        self.store = store
+        self.counter = 0
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -25,6 +29,14 @@ class BERTNERMasker(Module):
 
     def forward(self, text: str) -> str:
         """Redact entities using model predictions."""
+
+        def _replace(entity_text):
+            self.counter += 1
+            token = self.mask_token.format(counter=self.counter)
+            if self.store:
+                self.store.record(token, entity_text)
+            return token
+
         inputs = self.tokenizer(text, return_tensors="pt", truncation=True).to(
             self.device
         )
