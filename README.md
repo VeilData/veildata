@@ -22,6 +22,12 @@ Modern AI systems touch sensitive data every day.
 ```bash
 pip install veildata
 ```
+**Run from Docker**
+```shell
+docker build -t veildata .
+alias veildata="docker run --rm -v \$(pwd):/app veildata"
+veildata mask data/input.csv --out data/redacted.csv
+```
 
 **For Development**
 ```bash
