@@ -19,17 +19,38 @@ Modern AI systems touch sensitive data every day.
 ### Installation
 
 **From PyPI**
-```bash
+```shell
 pip install veildata
 ```
 
+**Running in Docker**
+```shell
+docker build -t veildata .
+docker run -it ghcr.io/veildata/veildata:latest
+```
+
 **For Development**
-```bash
+```shell
 git clone https://github.com/VeilData/veildata.git
 cd veildata
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
+
+### Quickstart Guide
+Mark sensitive data
+```shell
+veildata mask input.txt --out masked.txt
+```
+Reveal previously mask data
+```shell
+veildata unmask masked.txt --store mappings.json --out revealed.txt
+```
+** Using Docker**
+```shell
+docker run --rm -v $(pwd):/app veildata mask input.txt --out masked.txt
+```
+
 
 ### Examples
 Regex-based Masking
