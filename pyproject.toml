@@ -13,7 +13,8 @@ dependencies = [
     "black",
     "ruff",
     "en-core-web-sm",
-    "typer"
+    "typer",
+    "rich"
 ]
 license = {text = "MIT"}
 authors = [
