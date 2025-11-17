@@ -40,6 +40,7 @@ docker run -it ghcr.io/veildata/veildata:latest
 git clone https://github.com/VeilData/veildata.git
 cd veildata
 curl -LsSf https://astral.sh/uv/install.sh | sh
+uv venv
 uv sync
 ```
 

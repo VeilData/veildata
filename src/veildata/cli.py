@@ -1,13 +1,16 @@
 from typing import Optional
 
 import typer
+from rich.table import Table
+from rich.console import Console
+from rich.panel import Panel
 
-from veildata.engine import list_available_maskers
+from veildata.engine import list_engines
 
 app = typer.Typer(help="VeilData — configurable PII masking and unmasking CLI")
+console = Console()
 
-
-@app.command()
+@app.command("mask", help="Redact sensitive data from a file or stdin.")
 def mask(
     input: str = typer.Argument(..., help="Input text or path to file"),
     output: Optional[str] = typer.Option(
@@ -29,6 +32,7 @@ def mask(
     store_path: Optional[str] = typer.Option(
         None, "--store", help="Path to save reversible TokenStore mapping"
     ),
+    preview: int = typer.Option(0, "--preview", help="Print N preview lines."),
 ):
     from veildata.engine import build_masker
 
@@ -42,27 +46,29 @@ def mask(
     except FileNotFoundError:
         text = input  # treat as raw text input
 
-    # Mask
     masked = masker(text)
+
     if not dry_run:
         if output:
             with open(output, "w") as f:
                 f.write(masked)
             if verbose:
-                typer.echo(f"✅ Masked output written to {output}")
+                console.print(f"✅ Masked output written to {output}")
         else:
-            typer.echo(masked)
+            console.print(masked)
 
         if store_path:
             store.save(store_path)
             if verbose:
-                typer.echo(f"🧠 TokenStore saved to {store_path}")
+                console.print(f"🧠 TokenStore saved to {store_path}")
+    elif preview:
+        console.print(Panel.fit(masked, title="[bold cyan]Preview[/]"))
     else:
-        typer.echo(masked)
-        typer.echo("\n(Dry run — no file written.)")
+        console.print(masked)
+        console.print("\n(Dry run — no file written.)")
 
 
-@app.command()
+@app.command("unmask", help="Reverse masking using stored token mappings.")
 def unmask(
     input: str = typer.Argument(..., help="Masked text or file path"),
     store_path: str = typer.Option(
@@ -83,12 +89,22 @@ def unmask(
     typer.echo(unmasker(text))
 
 
-@app.command()
+@app.command("inspect", help="Show available masking engines and config paths.")
 def inspect():
     """Show available masking engines."""
-    typer.echo("Available masking engines:")
-    for name in list_available_maskers():
-        typer.echo(f"  • {name}")
+
+    engines = list_engines()
+
+    table = Table(title="Available Masking Engines")
+    table.add_column("Engine", style="cyan", no_wrap=True)
+    table.add_column("Description", style="white")
+    for name, desc in engines:
+        table.add_row(name, desc)
+    console.print(table)
+
+def version():
+    """Show VeilData version."""
+    typer.echo(f"VeilData {__version__}")
 
 
 def main():
