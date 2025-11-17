@@ -23,8 +23,9 @@ def check_spacy():
         return ("spaCy", f"Unavailable ({e})", "WARN")
 
 def check_version():
+    from veildata.cli import version
+    __version__ = version()
     try:
-        from veildata import __version__
         return ("VeilData Version", __version__, "OK")
     except Exception:
         return ("VeilData Version", "Unknown", "WARN")

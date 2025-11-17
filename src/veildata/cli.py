@@ -112,9 +112,24 @@ def inspect():
         table.add_row(name, desc)
     console.print(table)
 
+@app.command("version", help="Show VeilData version.")
 def version():
     """Show VeilData version."""
+    from importlib.metadata import version, PackageNotFoundError
+    from pathlib import Path
+    import tomllib
+    try:
+        __version__ = version("package-name")
+    except PackageNotFoundError:
+        pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
+        if pyproject_path.exists():
+            try:
+                data = tomllib.loads(pyproject_path.read_text())
+                __version__ = data.get("project", {}).get("version", "dev")
+            except Exception:
+                __version__ = "unknown"
     typer.echo(f"VeilData {__version__}")
+    return __version__
 
 
 
