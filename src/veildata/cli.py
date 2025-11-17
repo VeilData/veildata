@@ -6,6 +6,16 @@ from rich.console import Console
 from rich.panel import Panel
 
 from veildata.engine import list_engines
+from veildata.diagnostics import (
+    check_python,
+    check_os,
+    check_spacy,
+    check_version,
+    check_engines,
+    check_write_permissions,
+    check_docker,
+    check_ghcr,
+)
 
 app = typer.Typer(help="VeilData — configurable PII masking and unmasking CLI")
 console = Console()
@@ -105,6 +115,48 @@ def inspect():
 def version():
     """Show VeilData version."""
     typer.echo(f"VeilData {__version__}")
+
+
+
+@app.command("doctor", help="Run environment diagnostics to verify VeilData setup.")
+def doctor():
+    console.print(Panel.fit("[bold cyan]VeilData Environment Diagnostics[/]"))
+
+    # Collect results from all diagnostics
+    checks = [
+        check_python(),
+        check_os(),
+        check_spacy(),
+        check_version(),
+        check_engines(list_engines),
+        check_write_permissions(),
+        check_docker(),
+        check_ghcr(),
+    ]
+
+    # Render table
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Check", style="cyan", no_wrap=True)
+    table.add_column("Result")
+    table.add_column("Status", style="bold")
+
+    for name, result, status in checks:
+        color = {
+            "OK": "green",
+            "WARN": "yellow",
+            "FAIL": "red",
+        }[status]
+        table.add_row(name, result, f"[{color}]{status}[/{color}]")
+
+    console.print(table)
+
+    failures = [x for x in checks if x[2] == "FAIL"]
+
+    if failures:
+        console.print(Panel.fit("[red]Some checks failed.[/]", title="Summary"))
+        raise typer.Exit(code=1)
+
+    console.print(Panel.fit("[green]All checks passed![/]", title="Summary"))
 
 
 def main():
