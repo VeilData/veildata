@@ -4,7 +4,7 @@
 
 [project]
 name = "veildata"
-version = "0.1.0"
+version = "0.1.1"
 description = "Framework for masking and unmasking PII."
 readme = "README.md"
 requires-python = ">=3.9"
