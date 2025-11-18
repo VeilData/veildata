@@ -55,8 +55,8 @@ en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/dow
 
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "I"]
-ignore = ["E501"]
+lint.select = ["E", "F", "I"]
+lint.ignore = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"

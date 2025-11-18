@@ -1,24 +1,25 @@
 from typing import Optional
 
 import typer
-from rich.table import Table
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
 
-from veildata.engine import list_engines
 from veildata.diagnostics import (
-    check_python,
+    check_docker,
+    check_engines,
+    check_ghcr,
     check_os,
+    check_python,
     check_spacy,
     check_version,
-    check_engines,
     check_write_permissions,
-    check_docker,
-    check_ghcr,
 )
+from veildata.engine import list_engines
 
 app = typer.Typer(help="VeilData — configurable PII masking and unmasking CLI")
 console = Console()
+
 
 @app.command("mask", help="Redact sensitive data from a file or stdin.")
 def mask(
@@ -112,12 +113,15 @@ def inspect():
         table.add_row(name, desc)
     console.print(table)
 
+
 @app.command("version", help="Show VeilData version.")
 def version():
     """Show VeilData version."""
-    from importlib.metadata import version, PackageNotFoundError
+    from importlib.metadata import PackageNotFoundError, version
     from pathlib import Path
+
     import tomllib
+
     try:
         __version__ = version("package-name")
     except PackageNotFoundError:
@@ -130,7 +134,6 @@ def version():
                 __version__ = "unknown"
     typer.echo(f"VeilData {__version__}")
     return __version__
-
 
 
 @app.command("doctor", help="Run environment diagnostics to verify VeilData setup.")
