@@ -2,6 +2,7 @@
 **A lightweight framework for masking and unmasking Personally Identifiable Information (PII).**
 
 [![CI](https://github.com/VeilData/veildata/actions/workflows/ci.yml/badge.svg)](https://github.com/VeilData/veildata/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/VeilData/veildata/branch/main/graph/badge.svg)](https://codecov.io/gh/VeilData/veildata)
 [![PyPI version](https://img.shields.io/pypi/v/veildata.svg)](https://pypi.org/project/veildata/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 

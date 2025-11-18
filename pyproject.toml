@@ -14,7 +14,10 @@ dependencies = [
     "ruff",
     "en-core-web-sm",
     "typer",
-    "rich"
+    "rich",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "coverage>=7.10.7",
 ]
 license = {text = "MIT"}
 authors = [
@@ -74,3 +77,20 @@ packages = { find = { where = ["src"] } }
 dev = [
     "pytest>=8.3.5",
 ]
+
+[tool.coverage.run]
+branch = true
+source = ["veildata"]
+omit = [
+    "tests/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"

@@ -28,7 +28,13 @@ jobs:
           uv run black --check .
 
       - name: Run tests (core only)
-        run: uv run pytest -q --disable-warnings
+        run: uv run pytest -q --disable-warnings --cov --cov-report=xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   full-tests:
     name: Full Tests (with extras)
