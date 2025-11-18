@@ -4,7 +4,7 @@
 
 [project]
 name = "veildata"
-version = "0.0.1"
+version = "0.1.1"
 description = "Framework for masking and unmasking PII."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -13,7 +13,8 @@ dependencies = [
     "black",
     "ruff",
     "en-core-web-sm",
-    "typer"
+    "typer",
+    "rich"
 ]
 license = {text = "MIT"}
 authors = [
@@ -28,18 +29,14 @@ classifiers = [
 
 [project.optional-dependencies]
 spacy = [
-  "spacy==3.8.7",
-  "thinc>=8.3.4,<8.4.0",
-  "numpy>=1.26.0,<2.0.0",
+  "spacy>=3.8.2",
 ]
 bert = [
     "torch>=2.0.0",
     "transformers>=4.30.0",
 ]
 all = [
-    "spacy==3.8.7",
-    "thinc>=8.3.4,<8.4.0",
-    "numpy>=1.26.0,<2.0.0",
+    "spacy==3.8.2",
     "torch>=2.0.0",
     "transformers>=4.30.0",
     "pytest>=8.3.5",

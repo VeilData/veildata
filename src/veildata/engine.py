@@ -19,6 +19,14 @@ def list_available_maskers() -> List[str]:
     return list(MASKER_REGISTRY.keys()) + ["all"]
 
 
+def list_engines():
+    return [
+        ("regex", "Pattern-based masking (fast, deterministic)."),
+        ("spacy", "NER-based entity detection."),
+        ("hybrid", "Regex + NER combined."),
+    ]
+
+
 def load_config(config_path: Optional[str]) -> dict:
     if not config_path:
         return {}
