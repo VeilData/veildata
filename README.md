@@ -11,7 +11,7 @@
 ### 🧠 Why VeilData
 
 Modern AI systems touch sensitive data every day.  
-**VeilData** makes it easy to redact, anonymize, and later restore information—using the same composable design you love from PyTorch.
+**VeilData** makes it easy to redact, anonymize, and later restore information.
 
 ---
 
@@ -128,3 +128,4 @@ print(masker(text))
 ### 🛠️ Continuous Integration
 - CI: .github/workflows/ci.yml runs linting, formatting, build, and tests on every push or PR.
 - Publish: .github/workflows/publish.yml auto-publishes to PyPI when a new v* tag or release is created.
+
