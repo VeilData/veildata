@@ -44,11 +44,31 @@ def mask(
         None, "--store", help="Path to save reversible TokenStore mapping"
     ),
     preview: int = typer.Option(0, "--preview", help="Print N preview lines."),
+    detect_mode: str = typer.Option(
+        "rules",
+        "--detect-mode",
+        help="Detection mode: rules | ml | hybrid",
+    ),
+    ml_config: Optional[str] = typer.Option(
+        None, "--ml-config", help="Path to ML-specific config file"
+    ),
+    no_ml: bool = typer.Option(
+        False, "--no-ml", help="Force rules-only mode (overrides detect-mode)"
+    ),
 ):
     from veildata.engine import build_masker
 
     """Mask PII in text or files using a configurable engine."""
-    masker, store = build_masker(method, config_path=config_path, verbose=verbose)
+    if no_ml:
+        detect_mode = "rules"
+
+    masker, store = build_masker(
+        method,
+        detect_mode=detect_mode,
+        config_path=config_path,
+        ml_config_path=ml_config,
+        verbose=verbose,
+    )
 
     # Read input
     try:

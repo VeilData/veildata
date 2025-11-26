@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 
 from veildata.compose import Compose
+from veildata.core import Module
 from veildata.revealers import TokenStore
 
 MASKER_REGISTRY: Dict[str, str] = {
@@ -48,17 +49,20 @@ def _lazy_import(dotted_path: str):
 
 
 def build_masker(
-    method: str,
+    method: str = "regex",
+    detect_mode: str = "rules",
     config_path: Optional[str] = None,
+    ml_config_path: Optional[str] = None,
     verbose: bool = False,
-) -> Tuple[Compose, TokenStore]:
+) -> Tuple[Module, TokenStore]:
     """
     Build a masking pipeline (Compose) and a shared TokenStore.
 
     Returns:
-        (Compose(maskers), TokenStore)
+        (Module, TokenStore)
     """
     config = load_config(config_path)
+    ml_config = load_config(ml_config_path)
     method = method.lower()
     store = TokenStore()
 
@@ -66,6 +70,75 @@ def build_masker(
         if verbose:
             print(f"[veildata] {msg}")
 
+    # Check if config has patterns - if so, use new detector-based approach even for rules mode
+    if config.get("pattern") or config.get("patterns"):
+        from veildata.detectors import RegexDetector, HybridDetector, SpacyDetector, BertDetector
+        from veildata.pipeline import DetectionPipeline
+        
+        # Support both "pattern" and "patterns" key names
+        patterns = config.get("pattern") or config.get("patterns")
+        
+        if detect_mode == "rules":
+            # Rules mode with patterns from config
+            vprint(f"Loading RegexDetector with {len(patterns)} patterns...")
+            detector = RegexDetector(patterns)
+            return DetectionPipeline(detector, store=store), store
+        
+        elif detect_mode in ["ml", "hybrid"]:
+            # ML/Hybrid mode
+            detectors = []
+            
+            # 1. Add ML Detectors
+            # ml_config can have settings at root level or nested under 'ml' key
+            ml_settings = ml_config.get("ml", ml_config) if ml_config else {}
+            spacy_conf = ml_settings.get("spacy", {})
+            bert_conf = ml_settings.get("bert", {})
+            
+            # If no config provided, enable Spacy by default for 'ml' mode as a sane default
+            if not ml_config:
+                spacy_conf = {"enabled": True}
+
+            if spacy_conf.get("enabled", False) or (not ml_config and detect_mode == "ml"):
+                vprint("Loading SpacyDetector...")
+                detectors.append(
+                    SpacyDetector(
+                        model=spacy_conf.get("model", "en_core_web_lg"),
+                        pii_labels=spacy_conf.get("pii_labels"),
+                    )
+                )
+
+            if bert_conf.get("enabled", False):
+                vprint("Loading BertDetector...")
+                detectors.append(
+                    BertDetector(
+                        model_name=bert_conf.get("model_path", "dslim/bert-base-NER"),
+                        threshold=bert_conf.get("threshold", 0.5),
+                        label_mapping=bert_conf.get("label_mapping"),
+                    )
+                )
+
+            # 2. Add Regex Detector for Hybrid mode
+            if detect_mode == "hybrid":
+                vprint("Loading RegexDetector for Hybrid mode...")
+                detectors.append(RegexDetector(patterns))
+
+            if not detectors:
+                raise ValueError("No detectors enabled for ML/Hybrid mode.")
+
+            if len(detectors) > 1:
+                vprint(f"Combining {len(detectors)} detectors in Hybrid mode...")
+                hybrid_conf = config.get("options", {}).get("hybrid", {})
+                detector = HybridDetector(
+                    detectors,
+                    strategy=hybrid_conf.get("strategy", "union"),
+                    prefer=hybrid_conf.get("prefer", "ml"),
+                )
+            else:
+                detector = detectors[0]
+
+            return DetectionPipeline(detector, store=store), store
+
+    # Legacy / Rules Mode (no patterns in config)
     if method == "all":
         maskers = []
         for key, dotted_path in MASKER_REGISTRY.items():

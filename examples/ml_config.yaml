@@ -1,0 +1,23 @@
+# Example ML configuration for spaCy and BERT detectors
+# Usage: veildata mask input.txt --detect-mode ml --ml-config examples/ml_config.yaml
+
+ml:
+  spacy:
+    enabled: true
+    model: "en_core_web_lg"
+    pii_labels:
+      - PERSON
+      - ORG
+      - GPE
+      - LOC
+      - NORP
+
+  bert:
+    enabled: false
+    model_path: "dslim/bert-base-NER"
+    threshold: 0.5
+    label_mapping:
+      PERSON: ["PER"]
+      ORG: ["ORG"]
+      LOC: ["LOC"]
+      MISC: ["MISC"]

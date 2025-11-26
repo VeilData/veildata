@@ -60,7 +60,7 @@ docker run --rm -v $(pwd):/app veildata mask input.txt --out masked.txt
 ```
 
 
-### Examples
+## Python SDK Examples
 Regex-based Masking
 ```python
 from veildata import Compose, RegexMasker, TokenStore
@@ -101,29 +101,79 @@ masker = SpacyNERMasker(
     store=store
 )
 
-text = "John works at OpenAI in San Francisco."
-
-# --- Mask automatically and track mappings ---
+text = "Apple was founded by Steve Jobs in Cupertino."
 masked = masker(text)
-print(masked)
-# -> [REDACTED_1] works at [REDACTED_2] in San Francisco.
-
-# --- Unmask using the same store ---
-unmasked = store.unmask(masked)
-print(unmasked)
-# -> John works at OpenAI in San Francisco.
+print(masked)  # -> [REDACTED_1] was founded by [REDACTED_2] in Cupertino.
 ```
 
-BERT-based Masking
+#### BERT NER Masking
 ```python
-from veildata.bert_masker import BERTNERMasker
+# Requires `pip install veildata[bert]`
+from veildata.maskers.ner_bert import BERTNERMasker
+from veildata import TokenStore
 
-masker = BERTNERMasker(model_name="dslim/bert-base-NER")
-text = "Email Jane at jane.doe@example.com"
-print(masker(text))
-# -> Email [REDACTED] at [REDACTED]
+store = TokenStore()
+masker = BERTNERMasker(
+    model_name="dslim/bert-base-NER",
+    store=store
+)
+
+text = "John Smith works at Google in New York."
+masked = masker(text)
+print(masked)  # -> [REDACTED_1] works at [REDACTED_2] in [REDACTED_3].
 ```
 
+---
+
+## ⚙️ CLI Configuration
+
+### spaCy PII Detection
+
+```yaml
+ml:
+  spacy:
+    enabled: true
+    model: "en_core_web_lg"
+    pii_labels:
+      - PERSON
+      - ORG
+      - GPE
+      - LOC
+      - NORP
+```
+
+### BERT-Style PII Detection
+
+```yaml
+ml:
+  bert:
+    enabled: true
+    model_path: "models/pii-bert-base"
+    threshold: 0.5
+    label_mapping:
+      EMAIL: ["B-EMAIL", "I-EMAIL"]
+      PHONE: ["B-PHONE", "I-PHONE"]
+      SSN: ["B-SSN", "I-SSN"]
+```
+
+### Hybrid Detection
+
+When using `--detect-mode hybrid`:
+
+1. Run **regex rules** on text → produce spans with types
+2. Run **ML/NLP engines** (spaCy + BERT) → produce spans with types + scores
+3. Merge spans:
+   - If spans overlap with same type → keep the union
+   - If spans overlap with different types → configurable resolution
+
+```yaml
+options:
+  detect_mode: hybrid  # default: rules
+  hybrid:
+    prefer: ml  # ml | rules | longest_span
+```
+
+---
 
 ### 🛠️ Continuous Integration
 - CI: .github/workflows/ci.yml runs linting, formatting, build, and tests on every push or PR.
