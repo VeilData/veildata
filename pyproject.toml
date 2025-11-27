@@ -64,7 +64,7 @@ lint.ignore = ["E501"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-line-ending = "auto"
+line-ending = "lf"
 
 [tool.black]
 line-length = 88
