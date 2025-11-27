@@ -36,4 +36,4 @@ ENV/
 
 .idea/
 coverage.xml
-
+.coverage
