@@ -72,33 +72,40 @@ def build_masker(
 
     # Check if config has patterns - if so, use new detector-based approach even for rules mode
     if config.get("pattern") or config.get("patterns"):
-        from veildata.detectors import RegexDetector, HybridDetector, SpacyDetector, BertDetector
+        from veildata.detectors import (
+            BertDetector,
+            HybridDetector,
+            RegexDetector,
+            SpacyDetector,
+        )
         from veildata.pipeline import DetectionPipeline
-        
+
         # Support both "pattern" and "patterns" key names
         patterns = config.get("pattern") or config.get("patterns")
-        
+
         if detect_mode == "rules":
             # Rules mode with patterns from config
             vprint(f"Loading RegexDetector with {len(patterns)} patterns...")
             detector = RegexDetector(patterns)
             return DetectionPipeline(detector, store=store), store
-        
+
         elif detect_mode in ["ml", "hybrid"]:
             # ML/Hybrid mode
             detectors = []
-            
+
             # 1. Add ML Detectors
             # ml_config can have settings at root level or nested under 'ml' key
             ml_settings = ml_config.get("ml", ml_config) if ml_config else {}
             spacy_conf = ml_settings.get("spacy", {})
             bert_conf = ml_settings.get("bert", {})
-            
+
             # If no config provided, enable Spacy by default for 'ml' mode as a sane default
             if not ml_config:
                 spacy_conf = {"enabled": True}
 
-            if spacy_conf.get("enabled", False) or (not ml_config and detect_mode == "ml"):
+            if spacy_conf.get("enabled", False) or (
+                not ml_config and detect_mode == "ml"
+            ):
                 vprint("Loading SpacyDetector...")
                 detectors.append(
                     SpacyDetector(
