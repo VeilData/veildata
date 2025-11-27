@@ -8,7 +8,7 @@ def test_pipeline_masking():
     # Mock detector
     detector = MagicMock()
     detector.detect.return_value = [
-        EntitySpan(8, 12, "PERSON", 1.0, "mock", "John")
+        EntitySpan(7, 11, "PERSON", 1.0, "mock", "John")
     ]
     
     pipeline = DetectionPipeline(detector)
@@ -21,7 +21,7 @@ def test_pipeline_masking():
 def test_pipeline_with_store():
     detector = MagicMock()
     detector.detect.return_value = [
-        EntitySpan(8, 12, "PERSON", 1.0, "mock", "John")
+        EntitySpan(7, 11, "PERSON", 1.0, "mock", "John")
     ]
     
     store = TokenStore()
