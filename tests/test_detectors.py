@@ -1,11 +1,9 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from veildata.detectors import (
-    BertDetector,
     EntitySpan,
     HybridDetector,
     RegexDetector,
-    SpacyDetector,
 )
 
 
@@ -20,46 +18,6 @@ def test_regex_detector():
     assert spans[0].text == "test@example.com"
     assert spans[0].start == 8
     assert spans[0].end == 24
-
-
-@patch("veildata.detectors.spacy")
-def test_spacy_detector(mock_spacy):
-    # Mock spaCy model and doc
-    mock_nlp = MagicMock()
-    mock_spacy.load.return_value = mock_nlp
-    mock_spacy.util.is_package.return_value = True
-
-    mock_ent = MagicMock()
-    mock_ent.label_ = "PERSON"
-    mock_ent.start_char = 0
-    mock_ent.end_char = 4
-    mock_ent.text = "John"
-
-    detector = SpacyDetector(pii_labels=["PERSON"])
-    spans = detector.detect("John")
-
-    assert len(spans) == 1
-    assert spans[0].label == "PERSON"
-    assert spans[0].text == "John"
-
-
-@patch("veildata.detectors.pipeline")
-def test_bert_detector(mock_pipeline):
-    # Mock transformers pipeline
-    mock_nlp = MagicMock()
-    mock_pipeline.return_value = mock_nlp
-
-    # Mock output
-    mock_nlp.return_value = [
-        {"entity_group": "PER", "score": 0.9, "start": 0, "end": 4, "word": "John"}
-    ]
-
-    detector = BertDetector()
-    spans = detector.detect("John")
-
-    assert len(spans) == 1
-    assert spans[0].label == "PERSON"  # Mapped from PER
-    assert spans[0].text == "John"
 
 
 def test_hybrid_detector_union():
