@@ -37,58 +37,60 @@ class BERTNERMasker(Module):
             truncation=True,
             return_special_tokens_mask=True,
         )
-        
+
         # Create model inputs without the extra fields
         model_inputs = {
-            'input_ids': inputs['input_ids'].to(self.device),
-            'attention_mask': inputs['attention_mask'].to(self.device)
+            "input_ids": inputs["input_ids"].to(self.device),
+            "attention_mask": inputs["attention_mask"].to(self.device),
         }
-        
+
         with torch.no_grad():
             outputs = self.model(**model_inputs)
-            
+
         # Get predictions and token information
         predictions = torch.argmax(outputs.logits, dim=2)[0].cpu().numpy()
         input_ids = inputs["input_ids"][0].cpu().numpy()
         offset_mapping = inputs["offset_mapping"][0].cpu().numpy()
         special_tokens_mask = inputs["special_tokens_mask"][0].cpu().numpy()
-        
+
         # Convert to human-readable labels
         labels = [self.label_map[pred] for pred in predictions]
-        
+
         # Group tokens into entities
         entities = []
         current_entity = None
-        
-        for i, (token_id, label, (start, end), is_special) in enumerate(zip(
-            input_ids, labels, offset_mapping, special_tokens_mask
-        )):
+
+        for i, (token_id, label, (start, end), is_special) in enumerate(
+            zip(input_ids, labels, offset_mapping, special_tokens_mask)
+        ):
             if is_special:  # Skip special tokens like [CLS], [SEP]
                 continue
-                
-            token = self.tokenizer.convert_tokens_to_string([self.tokenizer._convert_id_to_token(token_id)])
-            
-            if label.startswith('B-'):
+
+            token = self.tokenizer.convert_tokens_to_string(
+                [self.tokenizer._convert_id_to_token(token_id)]
+            )
+
+            if label.startswith("B-"):
                 if current_entity is not None:
                     entities.append(current_entity)
                 current_entity = {
-                    'start': start,
-                    'end': end,
-                    'label': label[2:],  # Remove B- or I- prefix
-                    'text': token
+                    "start": start,
+                    "end": end,
+                    "label": label[2:],  # Remove B- or I- prefix
+                    "text": token,
                 }
-            elif label.startswith('I-') and current_entity is not None:
+            elif label.startswith("I-") and current_entity is not None:
                 # Continue current entity
-                current_entity['end'] = end
-                current_entity['text'] += token.replace('##', '')
+                current_entity["end"] = end
+                current_entity["text"] += token.replace("##", "")
             else:
                 if current_entity is not None:
                     entities.append(current_entity)
                     current_entity = None
-        
+
         if current_entity is not None:  # Add the last entity if exists
             entities.append(current_entity)
-            
+
         return entities
 
     def forward(self, text: str) -> str:
@@ -96,31 +98,31 @@ class BERTNERMasker(Module):
         entities = self._get_entity_spans(text)
         if not entities:
             return text
-            
+
         # Sort entities by start position (in reverse order for easier replacement)
-        entities.sort(key=lambda x: x['start'], reverse=True)
-        
+        entities.sort(key=lambda x: x["start"], reverse=True)
+
         result = list(text)
-        
+
         for entity in entities:
-            start = entity['start']
-            end = entity['end']
+            start = entity["start"]
+            end = entity["end"]
             entity_text = text[start:end]
-            
+
             # Skip if the entity text doesn't match (can happen due to tokenization quirks)
-            if entity_text.strip() != entity['text'].strip():
+            if entity_text.strip() != entity["text"].strip():
                 continue
-                
+
             # Generate mask token and record in store
             self.counter += 1
             mask = self.mask_token.format(counter=self.counter)
             if self.store:
                 self.store.record(mask, entity_text)
-                
+
             # Replace the entity text with the mask
-            result[start:end] = [mask] + [''] * (end - start - len(mask))
-            
-        return ''.join(result)
+            result[start:end] = [mask] + [""] * (end - start - len(mask))
+
+        return "".join(result)
 
     def train(self, mode: bool = True) -> "BERTNERMasker":
         """Toggle train/eval mode on BERT model."""

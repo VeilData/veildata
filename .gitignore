@@ -35,4 +35,5 @@ ENV/
 .pypirc
 
 .idea/
-
+coverage.xml
+.coverage
