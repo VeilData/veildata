@@ -48,7 +48,7 @@ uv sync
 ### Quickstart Guide
 Mark sensitive data
 ```shell
-veildata mask input.txt  --method regex --config config.yaml --out masked.txt
+veildata mask input.txt
 ```
 Example config.yaml
 ```yaml
@@ -58,7 +58,7 @@ patterns:
 
 Reveal previously mask data
 ```shell
-veildata unmask masked.txt --store mappings.json --out revealed.txt
+veildata unmask masked.txt
 ```
 ** Using Docker**
 ```shell
