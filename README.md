@@ -46,21 +46,35 @@ uv sync
 ```
 
 ### Quickstart Guide
-Mark sensitive data
+
+**One-Shot Masking (No Config Required)**
 ```shell
-veildata mask input.txt
+veildata mask "My email is test@example.com"
+# -> My email is [REDACTED_1]
 ```
-Example config.yaml
+
+**One-Shot Unmasking**
+```shell
+veildata unmask "My email is [REDACTED_1]"
+# -> My email is test@example.com
+```
+
+**File-based Masking**
+```shell
+veildata mask input.txt --out masked.txt
+```
+
+**Custom Configuration**
 ```yaml
+# config.yaml
 patterns:
   EMAIL: "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"
 ```
-
-Reveal previously mask data
 ```shell
-veildata unmask masked.txt
+veildata mask input.txt --config config.yaml
 ```
-** Using Docker**
+
+**Using Docker**
 ```shell
 docker run --rm -v $(pwd):/app veildata mask input.txt --out masked.txt
 ```
