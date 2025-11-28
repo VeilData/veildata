@@ -40,8 +40,8 @@ def mask(
         False, "--dry-run", help="Show what would be masked without replacing text"
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logs"),
-    store_path: Optional[str] = typer.Option(
-        None, "--store", help="Path to save reversible TokenStore mapping"
+    store_path: str = typer.Option(
+        "token_store.json", "--store", help="Path to save reversible TokenStore mapping"
     ),
     preview: int = typer.Option(0, "--preview", help="Print N preview lines."),
     detect_mode: str = typer.Option(
@@ -103,7 +103,7 @@ def mask(
 def unmask(
     input: str = typer.Argument(..., help="Masked text or file path"),
     store_path: str = typer.Option(
-        ..., "--store", "-s", help="Path to stored TokenStore mapping"
+        "token_store.json", "--store", "-s", help="Path to stored TokenStore mapping"
     ),
 ):
     from veildata.engine import build_unmasker
