@@ -48,8 +48,14 @@ uv sync
 ### Quickstart Guide
 Mark sensitive data
 ```shell
-veildata mask input.txt --out masked.txt
+veildata mask input.txt  --method regex --config config.yaml --out masked.txt
 ```
+Example config.yaml
+```yaml
+patterns:
+  EMAIL: "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"
+```
+
 Reveal previously mask data
 ```shell
 veildata unmask masked.txt --store mappings.json --out revealed.txt
