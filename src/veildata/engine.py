@@ -2,8 +2,13 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import tomllib
 import yaml
+
+try:
+    import tomllib
+except ImportError:
+    # Fallback for older python versions if needed, though 3.11+ has tomllib
+    import tomli as tomllib
 
 from veildata.compose import Compose
 from veildata.core import Module
