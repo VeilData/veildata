@@ -65,6 +65,17 @@ veildata unmask masked.txt
 docker run --rm -v $(pwd):/app veildata mask input.txt --out masked.txt
 ```
 
+### File Input/Output (CLI)
+Mask a file, save the output, and keep a token store for reversibility:
+```shell
+veildata mask input.txt --output masked.txt --store store.json
+```
+
+Unmask the file using the stored tokens:
+```shell
+veildata unmask masked.txt --store store.json
+```
+
 
 ## Python SDK Examples
 Regex-based Masking
@@ -127,6 +138,32 @@ masker = BERTNERMasker(
 text = "John Smith works at Google in New York."
 masked = masker(text)
 print(masked)  # -> [REDACTED_1] works at [REDACTED_2] in [REDACTED_3].
+```
+
+#### File Input/Output
+```python
+from pathlib import Path
+from veildata import Compose, RegexMasker, TokenStore
+
+# Setup masker
+store = TokenStore()
+masker = Compose([
+    RegexMasker(r"\b\d{3}-\d{3}-\d{4}\b", store=store)
+])
+
+# Read from file
+input_path = Path("input.txt")
+if input_path.exists():
+    text = input_path.read_text()
+    
+    # Mask
+    masked_text = masker(text)
+    
+    # Write to file
+    Path("masked.txt").write_text(masked_text)
+    
+    # Save store for later unmasking
+    store.save("store.json")
 ```
 
 ---
