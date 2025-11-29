@@ -72,19 +72,80 @@ def mask(
             raise typer.Exit(code=1)
 
         # Only check store_path if we are actually going to write to it (i.e., not dry_run)
-        # But wait, store is updated even in dry_run? No, code says "if not dry_run: ... if store_path: store.save()"
-        # So we should only check if not dry_run.
         if not dry_run and store_path and Path(store_path).exists():
             console.print(
                 f"[red]Error: TokenStore file '{store_path}' already exists. Use --force to overwrite.[/]"
             )
             raise typer.Exit(code=1)
 
+    # Check for default config if none provided
+    if not config_path:
+        default_config = Path.home() / ".veildata" / "config.toml"
+        if not default_config.exists():
+            # Only prompt if interactive (stdin is a tty)
+            import sys
+
+            from rich.prompt import Confirm
+
+            if sys.stdin.isatty():
+                if Confirm.ask(
+                    "[yellow]No configuration found. Would you like to run the setup wizard?[/]",
+                    default=True,
+                ):
+                    from veildata.wizard import run_wizard
+
+                    run_wizard()
+                    # After wizard, try to use the new config
+                    if default_config.exists():
+                        config_path = str(default_config)
+
     if no_ml:
         detect_mode = "rules"
 
     from veildata.diagnostics import print_error
+    from veildata.engine import load_config
     from veildata.exceptions import ConfigMissingError
+
+    # Load config early to check for method override
+    try:
+        config = load_config(config_path, verbose=verbose)
+
+        # If method wasn't explicitly set via CLI and config has a method, use it
+        # We detect CLI default by checking if it's "regex" (the default)
+        # This is a heuristic - ideally typer would tell us if the value was defaulted
+        if method == "regex" and config.get("options", {}).get("method"):
+            method = config["options"]["method"]
+            if verbose:
+                console.print(f"[veildata] Using method '{method}' from config")
+
+        # Map user-friendly names to internal engine names
+        method_map = {
+            "spacy": "ner_spacy",
+            "bert": "ner_bert",
+        }
+        method = method_map.get(method, method)
+
+        # Handle "hybrid" specially - it needs patterns + ML
+        if method == "hybrid":
+            # For hybrid mode, we need to use the detector-based approach
+            # This requires patterns in the config
+            if not config.get("patterns") and not config.get("pattern"):
+                # Add default patterns for hybrid mode
+                from veildata.defaults import DEFAULT_PATTERNS
+
+                config["patterns"] = DEFAULT_PATTERNS
+            # Use regex method but set detect_mode to hybrid
+            method = "regex"
+            if detect_mode == "rules":  # Only override if not explicitly set
+                detect_mode = "hybrid"
+    except ConfigMissingError as e:
+        print_error(
+            console,
+            "Configuration Error",
+            str(e),
+            suggestion="Please check the file path or run without --config to use defaults.",
+        )
+        raise typer.Exit(code=1)
 
     try:
         masker, store = build_masker(
@@ -237,6 +298,14 @@ def doctor():
         raise typer.Exit(code=1)
 
     console.print(Panel.fit("[green]All checks passed![/]", title="Summary"))
+
+
+@app.command("init", help="Run the first-time setup wizard.")
+def init():
+    """Run the interactive setup wizard."""
+    from veildata.wizard import run_wizard
+
+    run_wizard()
 
 
 def main():

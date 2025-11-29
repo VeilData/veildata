@@ -4,6 +4,12 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
+try:
+    import tomllib
+except ImportError:
+    # Fallback for older python versions if needed, though 3.11+ has tomllib
+    import tomli as tomllib
+
 from veildata.compose import Compose
 from veildata.core import Module
 from veildata.exceptions import ConfigMissingError
@@ -30,8 +36,16 @@ def list_engines():
 
 
 def load_config(config_path: Optional[str], verbose: bool = False) -> dict:
+    # If no config path provided, check default location
     if not config_path:
-        return {}
+        default_path = Path.home() / ".veildata" / "config.toml"
+        if default_path.exists():
+            if verbose:
+                print(f"[veildata] Loaded default config from {default_path}")
+            config_path = str(default_path)
+        else:
+            return {}
+
     path = Path(config_path)
     try:
         text = path.read_text()
@@ -42,6 +56,8 @@ def load_config(config_path: Optional[str], verbose: bool = False) -> dict:
 
     if config_path.endswith(".json"):
         return json.loads(text)
+    if config_path.endswith(".toml"):
+        return tomllib.loads(text)
     return yaml.safe_load(text)
 
 
