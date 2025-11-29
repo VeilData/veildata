@@ -52,15 +52,45 @@ class SpacyDetector(Detector):
                 "spaCy is required for SpacyDetector. Install it with `pip install veildata[spacy]`"
             )
 
+        # Check if model is installed
         if not spacy.util.is_package(model):
-            # Fallback or warning? For now, let spacy raise error or download
-            pass
+            from rich.console import Console
+
+            console = Console()
+
+            # Prompt user for download
+            response = console.input(
+                f"[yellow]spaCy model '{model}' is not installed. "
+                f"Download it now? This may take a few moments. [y/n]: [/yellow]"
+            )
+
+            if response.lower() in ["y", "yes"]:
+                console.print(f"[cyan]Downloading spaCy model '{model}'...[/cyan]")
+                try:
+                    import subprocess
+                    import sys
+
+                    result = subprocess.run(
+                        [sys.executable, "-m", "spacy", "download", model],
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode != 0:
+                        raise RuntimeError(f"Failed to download model: {result.stderr}")
+                    console.print(
+                        f"[green]✓ Model '{model}' downloaded successfully![/green]"
+                    )
+                except Exception as e:
+                    raise RuntimeError(f"Failed to download spaCy model '{model}': {e}")
+            else:
+                raise OSError(
+                    f"spaCy model '{model}' not found and download declined. "
+                    f"Please download it manually with `python -m spacy download {model}`"
+                )
 
         try:
             self.nlp = spacy.load(model)
         except OSError:
-            # Try downloading if not present? Or just fail.
-            # Better to fail with clear message.
             raise OSError(
                 f"spaCy model '{model}' not found. Please download it with `python -m spacy download {model}`"
             )
@@ -114,6 +144,45 @@ class BertDetector(Detector):
             raise ImportError(
                 "transformers and torch are required for BertDetector. Install with `pip install veildata[bert]`"
             )
+
+        # Check if model is cached
+        import os
+        from pathlib import Path
+
+        from transformers.utils import TRANSFORMERS_CACHE
+
+        cache_dir = os.getenv("TRANSFORMERS_CACHE", TRANSFORMERS_CACHE)
+        model_cached = False
+
+        # Simple heuristic: check if model directory exists in cache
+        # This is not perfect but gives us a reasonable indication
+        if cache_dir:
+            cache_path = Path(cache_dir)
+            if cache_path.exists():
+                # Check for model files - transformers uses model name as part of cache key
+                model_cached = any(
+                    model_name.replace("/", "--") in str(p)
+                    for p in cache_path.glob("*")
+                )
+
+        if not model_cached:
+            from rich.console import Console
+
+            console = Console()
+
+            # Prompt user for download
+            response = console.input(
+                f"[yellow]BERT model '{model_name}' needs to be downloaded. "
+                f"This may be several hundred MB. Download now? [y/n]: [/yellow]"
+            )
+
+            if response.lower() not in ["y", "yes"]:
+                raise OSError(
+                    f"BERT model '{model_name}' not found and download declined. "
+                    f"You can download it manually or run again and confirm download."
+                )
+
+            console.print(f"[cyan]Downloading BERT model '{model_name}'...[/cyan]")
 
         self.nlp = pipeline("ner", model=model_name, aggregation_strategy="simple")
         self.threshold = threshold
