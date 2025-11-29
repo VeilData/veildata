@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -65,3 +66,27 @@ def test_email_regex_masking(tmp_path):
     masked = output_file.read_text()
     assert "john@example.com" not in masked
     assert "555-123-4567" in masked
+
+
+def test_cli_missing_config(tmp_path):
+    """Test that CLI shows friendly error message when config file is missing."""
+    input_file = tmp_path / "input.txt"
+    input_file.write_text("Some text")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "veildata.cli",
+            "mask",
+            str(input_file),
+            "--config",
+            "non_existent_config.yaml",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert "Configuration file not found" in result.stdout
+    assert "non_existent_config.yaml" in result.stdout
