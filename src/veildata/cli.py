@@ -103,7 +103,28 @@ def mask(
         detect_mode = "rules"
 
     from veildata.diagnostics import print_error
+    from veildata.engine import load_config
     from veildata.exceptions import ConfigMissingError
+
+    # Load config early to check for method override
+    try:
+        config = load_config(config_path, verbose=verbose)
+
+        # If method wasn't explicitly set via CLI and config has a method, use it
+        # We detect CLI default by checking if it's "regex" (the default)
+        # This is a heuristic - ideally typer would tell us if the value was defaulted
+        if method == "regex" and config.get("options", {}).get("method"):
+            method = config["options"]["method"]
+            if verbose:
+                console.print(f"[veildata] Using method '{method}' from config")
+    except ConfigMissingError as e:
+        print_error(
+            console,
+            "Configuration Error",
+            str(e),
+            suggestion="Please check the file path or run without --config to use defaults.",
+        )
+        raise typer.Exit(code=1)
 
     try:
         masker, store = build_masker(

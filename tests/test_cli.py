@@ -50,3 +50,17 @@ def test_cli_missing_config():
     result = run_cli(["mask", "input.txt", "--config", "nonexistent_config.yaml"])
     assert result.returncode == 1
     assert "Configuration Error" in result.stdout
+
+
+def test_config_method_override(tmp_path):
+    """Test that config method is used when CLI option is not set."""
+    # Create config with spacy method
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[options]\nmethod = "spacy"\n')
+
+    input_text = "Test text"
+    # Run without --method flag - should use "spacy" from config
+    result = run_cli(["mask", input_text, "--config", str(config_file)])
+
+    # It will fail because spacy model is missing, but error should mention spacy, not regex
+    assert "spacy" in result.stderr.lower() or "spacy" in result.stdout.lower()
