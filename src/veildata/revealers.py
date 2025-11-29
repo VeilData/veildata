@@ -45,5 +45,6 @@ class TokenStore:
     @classmethod
     def load(cls, path: str):
         store = cls()
-        store._mapping = json.loads(Path(path).read_text())
+        store.mapping = json.loads(Path(path).read_text())
+        store.counter = len(store.mapping)
         return store
