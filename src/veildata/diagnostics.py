@@ -75,3 +75,33 @@ def check_ghcr():
         return ("GHCR Image", "Pullable", "OK")
     except Exception as e:
         return ("GHCR Image", f"Unavailable ({e})", "WARN")
+
+
+def print_error(console, title: str, message: str, suggestion: str = None):
+    """
+    Print a formatted error message using Rich.
+
+    Args:
+        console: The Rich Console instance.
+        title: The title of the error (e.g., "Configuration Error").
+        message: The main error message.
+        suggestion: An optional suggestion for the user.
+    """
+    from rich.panel import Panel
+    from rich.text import Text
+
+    content = Text()
+    content.append(f"{message}\n", style="white")
+
+    if suggestion:
+        content.append("\nSuggestion:\n", style="bold yellow")
+        content.append(f"{suggestion}", style="italic yellow")
+
+    console.print(
+        Panel(
+            content,
+            title=f"[bold red]❌ {title}[/]",
+            border_style="red",
+            expand=False,
+        )
+    )
