@@ -52,15 +52,35 @@ def test_cli_missing_config():
     assert "Configuration Error" in result.stdout
 
 
-def test_config_method_override(tmp_path):
-    """Test that config method is used when CLI option is not set."""
-    # Create config with spacy method
+def test_wizard_spacy_config(tmp_path):
+    """Test that wizard-generated spacy config works."""
+    # Create config like wizard would
     config_file = tmp_path / "config.toml"
-    config_file.write_text('[options]\nmethod = "spacy"\n')
+    config_file.write_text(
+        '[options]\nmethod = "spacy"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
+    )
 
     input_text = "Test text"
-    # Run without --method flag - should use "spacy" from config
+    # This will fail due to missing model, but should not raise ValueError
     result = run_cli(["mask", input_text, "--config", str(config_file)])
 
-    # It will fail because spacy model is missing, but error should mention spacy, not regex
-    assert "spacy" in result.stderr.lower() or "spacy" in result.stdout.lower()
+    # Should fail with model error, not ValueError about unknown method
+    assert "ValueError" not in result.stderr
+    assert "Unknown masking method" not in result.stderr
+
+
+def test_wizard_hybrid_config(tmp_path):
+    """Test that wizard-generated hybrid config works."""
+    # Create config like wizard would
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        '[options]\nmethod = "hybrid"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
+    )
+
+    input_text = "Test email@example.com"
+    # This will fail due to missing spacy model, but should not raise ValueError
+    result = run_cli(["mask", input_text, "--config", str(config_file)])
+
+    # Should fail with model error, not ValueError about unknown method
+    assert "ValueError" not in result.stderr
+    assert "Unknown masking method" not in result.stderr

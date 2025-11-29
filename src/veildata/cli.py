@@ -117,6 +117,27 @@ def mask(
             method = config["options"]["method"]
             if verbose:
                 console.print(f"[veildata] Using method '{method}' from config")
+
+        # Map user-friendly names to internal engine names
+        method_map = {
+            "spacy": "ner_spacy",
+            "bert": "ner_bert",
+        }
+        method = method_map.get(method, method)
+
+        # Handle "hybrid" specially - it needs patterns + ML
+        if method == "hybrid":
+            # For hybrid mode, we need to use the detector-based approach
+            # This requires patterns in the config
+            if not config.get("patterns") and not config.get("pattern"):
+                # Add default patterns for hybrid mode
+                from veildata.defaults import DEFAULT_PATTERNS
+
+                config["patterns"] = DEFAULT_PATTERNS
+            # Use regex method but set detect_mode to hybrid
+            method = "regex"
+            if detect_mode == "rules":  # Only override if not explicitly set
+                detect_mode = "hybrid"
     except ConfigMissingError as e:
         print_error(
             console,
