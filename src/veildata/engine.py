@@ -6,6 +6,7 @@ import yaml
 
 from veildata.compose import Compose
 from veildata.core import Module
+from veildata.exceptions import ConfigMissingError
 from veildata.revealers import TokenStore
 
 MASKER_REGISTRY: Dict[str, str] = {
@@ -28,11 +29,17 @@ def list_engines():
     ]
 
 
-def load_config(config_path: Optional[str]) -> dict:
+def load_config(config_path: Optional[str], verbose: bool = False) -> dict:
     if not config_path:
         return {}
     path = Path(config_path)
-    text = path.read_text()
+    try:
+        text = path.read_text()
+        if verbose:
+            print(f"[veildata] Loaded config from {path.absolute()}")
+    except FileNotFoundError:
+        raise ConfigMissingError(f"Configuration file not found: {config_path}")
+
     if config_path.endswith(".json"):
         return json.loads(text)
     return yaml.safe_load(text)
@@ -61,8 +68,9 @@ def build_masker(
     Returns:
         (Module, TokenStore)
     """
-    config = load_config(config_path)
-    ml_config = load_config(ml_config_path)
+
+    config = load_config(config_path, verbose=verbose)
+    ml_config = load_config(ml_config_path, verbose=verbose)
     method = method.lower()
     store = TokenStore()
 
