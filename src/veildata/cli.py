@@ -60,7 +60,6 @@ def mask(
     from pathlib import Path
 
     from veildata.engine import build_masker
-    from veildata.exceptions import ConfigMissingError
 
     """Mask PII in text or files using a configurable engine."""
 
@@ -84,17 +83,13 @@ def mask(
     if no_ml:
         detect_mode = "rules"
 
-    try:
-        masker, store = build_masker(
-            method,
-            detect_mode=detect_mode,
-            config_path=config_path,
-            ml_config_path=ml_config,
-            verbose=verbose,
-        )
-    except ConfigMissingError as e:
-        console.print(f"[red]Error: {e}[/]")
-        raise typer.Exit(code=1)
+    masker, store = build_masker(
+        method,
+        detect_mode=detect_mode,
+        config_path=config_path,
+        ml_config_path=ml_config,
+        verbose=verbose,
+    )
 
     # Read input
     try:

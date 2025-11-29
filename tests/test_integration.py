@@ -23,9 +23,18 @@ def test_detection_pipeline_with_regex():
     assert store.mappings["[REDACTED_1]"] == "test@example.com"
 
 
+@patch("spacy.util.is_package", return_value=True)
+@patch("rich.console.Console")
 @patch("spacy.load")
-def test_detection_pipeline_with_spacy(mock_spacy_load):
+def test_detection_pipeline_with_spacy(
+    mock_spacy_load, mock_console_class, mock_is_package
+):
     """Test detection pipeline with spaCy detector."""
+
+    mock_console = MagicMock()
+    mock_console_class.return_value = mock_console
+    # Simulate the user responding 'y' (yes) to the model download prompt
+    mock_console.input.return_value = "y"
 
     mock_nlp = MagicMock()
     mock_spacy_load.return_value = mock_nlp
@@ -62,8 +71,15 @@ def test_detection_pipeline_with_spacy(mock_spacy_load):
     mock_spacy_load.assert_called()
 
 
-def test_hybrid_detection_pipeline():
+@patch("spacy.util.is_package", return_value=True)
+@patch("rich.console.Console")
+def test_hybrid_detection_pipeline(mock_console_class, mock_is_package):
     """Test hybrid detection pipeline with multiple detectors."""
+
+    mock_console = MagicMock()
+    mock_console_class.return_value = mock_console
+    mock_console.input.return_value = "y"
+
     # Create mock detectors
     patterns = {"EMAIL": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"}
     regex_detector = RegexDetector(patterns)
