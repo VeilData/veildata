@@ -72,13 +72,32 @@ def mask(
             raise typer.Exit(code=1)
 
         # Only check store_path if we are actually going to write to it (i.e., not dry_run)
-        # But wait, store is updated even in dry_run? No, code says "if not dry_run: ... if store_path: store.save()"
-        # So we should only check if not dry_run.
         if not dry_run and store_path and Path(store_path).exists():
             console.print(
                 f"[red]Error: TokenStore file '{store_path}' already exists. Use --force to overwrite.[/]"
             )
             raise typer.Exit(code=1)
+
+    # Check for default config if none provided
+    if not config_path:
+        default_config = Path.home() / ".veildata" / "config.toml"
+        if not default_config.exists():
+            # Only prompt if interactive (stdin is a tty)
+            import sys
+
+            from rich.prompt import Confirm
+
+            if sys.stdin.isatty():
+                if Confirm.ask(
+                    "[yellow]No configuration found. Would you like to run the setup wizard?[/]",
+                    default=True,
+                ):
+                    from veildata.wizard import run_wizard
+
+                    run_wizard()
+                    # After wizard, try to use the new config
+                    if default_config.exists():
+                        config_path = str(default_config)
 
     if no_ml:
         detect_mode = "rules"
@@ -237,6 +256,14 @@ def doctor():
         raise typer.Exit(code=1)
 
     console.print(Panel.fit("[green]All checks passed![/]", title="Summary"))
+
+
+@app.command("init", help="Run the first-time setup wizard.")
+def init():
+    """Run the interactive setup wizard."""
+    from veildata.wizard import run_wizard
+
+    run_wizard()
 
 
 def main():
