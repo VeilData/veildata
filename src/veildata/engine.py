@@ -62,13 +62,6 @@ def build_masker(
         (Module, TokenStore)
     """
     config = load_config(config_path)
-
-    # Inject defaults if no config provided for regex/rules mode
-    if not config and detect_mode == "rules" and method == "regex":
-        from veildata.defaults import DEFAULT_PATTERNS
-
-        config["patterns"] = DEFAULT_PATTERNS
-
     ml_config = load_config(ml_config_path)
     method = method.lower()
     store = TokenStore()
@@ -183,4 +176,5 @@ def build_unmasker(store_path: str):
         callable(text: str) -> str
     """
     store = TokenStore.load(store_path)
+    return store.unmask
     return store.unmask

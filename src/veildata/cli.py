@@ -40,8 +40,8 @@ def mask(
         False, "--dry-run", help="Show what would be masked without replacing text"
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logs"),
-    store_path: str = typer.Option(
-        "token_store.json", "--store", help="Path to save reversible TokenStore mapping"
+    store_path: Optional[str] = typer.Option(
+        None, "--store", help="Path to save reversible TokenStore mapping"
     ),
     preview: int = typer.Option(0, "--preview", help="Print N preview lines."),
     detect_mode: str = typer.Option(
@@ -55,10 +55,31 @@ def mask(
     no_ml: bool = typer.Option(
         False, "--no-ml", help="Force rules-only mode (overrides detect-mode)"
     ),
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite existing files"),
 ):
+    from pathlib import Path
+
     from veildata.engine import build_masker
 
     """Mask PII in text or files using a configurable engine."""
+
+    # Check for existing files
+    if not force:
+        if output and Path(output).exists():
+            console.print(
+                f"[red]Error: Output file '{output}' already exists. Use --force to overwrite.[/]"
+            )
+            raise typer.Exit(code=1)
+
+        # Only check store_path if we are actually going to write to it (i.e., not dry_run)
+        # But wait, store is updated even in dry_run? No, code says "if not dry_run: ... if store_path: store.save()"
+        # So we should only check if not dry_run.
+        if not dry_run and store_path and Path(store_path).exists():
+            console.print(
+                f"[red]Error: TokenStore file '{store_path}' already exists. Use --force to overwrite.[/]"
+            )
+            raise typer.Exit(code=1)
+
     if no_ml:
         detect_mode = "rules"
 
@@ -103,7 +124,7 @@ def mask(
 def unmask(
     input: str = typer.Argument(..., help="Masked text or file path"),
     store_path: str = typer.Option(
-        "token_store.json", "--store", "-s", help="Path to stored TokenStore mapping"
+        ..., "--store", "-s", help="Path to stored TokenStore mapping"
     ),
 ):
     from veildata.engine import build_unmasker
