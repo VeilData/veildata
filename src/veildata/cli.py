@@ -83,13 +83,34 @@ def mask(
     if no_ml:
         detect_mode = "rules"
 
-    masker, store = build_masker(
-        method,
-        detect_mode=detect_mode,
-        config_path=config_path,
-        ml_config_path=ml_config,
-        verbose=verbose,
-    )
+    from veildata.diagnostics import print_error
+    from veildata.exceptions import ConfigMissingError
+
+    try:
+        masker, store = build_masker(
+            method,
+            detect_mode=detect_mode,
+            config_path=config_path,
+            ml_config_path=ml_config,
+            verbose=verbose,
+        )
+    except ConfigMissingError as e:
+        print_error(
+            console,
+            "Configuration Error",
+            str(e),
+            suggestion="Please check the file path or run without --config to use defaults.",
+        )
+        raise typer.Exit(code=1)
+    except OSError as e:
+        # This catches model download failures (e.g. user declined download)
+        print_error(
+            console,
+            "Model Error",
+            str(e),
+            suggestion="Run with --verbose to see more details or try installing the model manually.",
+        )
+        raise typer.Exit(code=1)
 
     # Read input
     try:
