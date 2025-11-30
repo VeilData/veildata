@@ -14,6 +14,7 @@ class BERTNERMasker(Module):
         mask_token: str = "[REDACTED_{counter}]",
         store: TokenStore | None = None,
         device: str | None = None,
+        use_fp16: bool = False,
     ) -> None:
         super().__init__()
         self.model_name = model_name
@@ -21,10 +22,19 @@ class BERTNERMasker(Module):
         self.store = store
         self.counter = 0
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.use_fp16 = use_fp16 and self.device != "cpu"
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForTokenClassification.from_pretrained(model_name)
         self.model.to(self.device)
+
+        # Enable eval mode for inference (faster, disables dropout)
+        self.model.eval()
+
+        # Enable FP16 for GPU if requested (2x speedup, half memory)
+        if self.use_fp16:
+            self.model = self.model.half()
+
         self.label_map = self.model.config.id2label
 
     def _get_entity_spans(self, text: str) -> list:
@@ -44,7 +54,7 @@ class BERTNERMasker(Module):
             "attention_mask": inputs["attention_mask"].to(self.device),
         }
 
-        with torch.no_grad():
+        with torch.inference_mode():
             outputs = self.model(**model_inputs)
 
         # Get predictions and token information

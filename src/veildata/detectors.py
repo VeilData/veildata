@@ -137,8 +137,10 @@ class BertDetector(Detector):
         model_name: str = "dslim/bert-base-NER",
         threshold: float = 0.5,
         label_mapping: Optional[Dict[str, List[str]]] = None,
+        device: Optional[int] = None,
     ):
         try:
+            import torch
             from transformers import pipeline
         except ImportError:
             raise ImportError(
@@ -184,7 +186,14 @@ class BertDetector(Detector):
 
             console.print(f"[cyan]Downloading BERT model '{model_name}'...[/cyan]")
 
-        self.nlp = pipeline("ner", model=model_name, aggregation_strategy="simple")
+        # Determine device: if not specified, use GPU if available, else CPU
+        # device: 0 or positive int = GPU, -1 = CPU, None = auto-detect
+        if device is None:
+            device = 0 if torch.cuda.is_available() else -1
+
+        self.nlp = pipeline(
+            "ner", model=model_name, aggregation_strategy="simple", device=device
+        )
         self.threshold = threshold
         # Default mapping if none provided.
         # dslim/bert-base-NER uses PER, ORG, LOC, MISC
