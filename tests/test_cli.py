@@ -1,5 +1,12 @@
 import subprocess
 import sys
+from unittest.mock import patch
+
+from typer.testing import CliRunner
+
+from veildata.cli import app
+
+runner = CliRunner()
 
 
 def run_cli(args):
@@ -57,7 +64,7 @@ def test_wizard_spacy_config(tmp_path):
     # Create config like wizard would
     config_file = tmp_path / "config.toml"
     config_file.write_text(
-        '[options]\nmethod = "spacy"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
+        'method = "spacy"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
     )
 
     input_text = "Test text"
@@ -74,7 +81,7 @@ def test_wizard_hybrid_config(tmp_path):
     # Create config like wizard would
     config_file = tmp_path / "config.toml"
     config_file.write_text(
-        '[options]\nmethod = "hybrid"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
+        'method = "hybrid"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
     )
 
     input_text = "Test email@example.com"
@@ -84,3 +91,118 @@ def test_wizard_hybrid_config(tmp_path):
     # Should fail with model error, not ValueError about unknown method
     assert "ValueError" not in result.stderr
     assert "Unknown masking method" not in result.stderr
+
+
+def test_cli_inspect():
+    result = runner.invoke(app, ["inspect"])
+    assert result.exit_code == 0
+    assert "Available Masking Engines" in result.stdout
+    assert "regex" in result.stdout
+    assert "spacy" in result.stdout
+
+
+def test_cli_version():
+    result = runner.invoke(app, ["version"])
+    assert result.exit_code == 0
+    assert "VeilData" in result.stdout
+
+
+@patch("veildata.cli.check_python")
+@patch("veildata.cli.check_os")
+@patch("veildata.cli.check_spacy")
+@patch("veildata.cli.check_version")
+@patch("veildata.cli.check_engines")
+@patch("veildata.cli.check_write_permissions")
+@patch("veildata.cli.check_docker")
+@patch("veildata.cli.check_ghcr")
+def test_cli_doctor(
+    mock_ghcr,
+    mock_docker,
+    mock_write,
+    mock_engines,
+    mock_version,
+    mock_spacy,
+    mock_os,
+    mock_python,
+):
+    # Setup mocks to return success
+    mock_python.return_value = ("Python", "3.10", "OK")
+    mock_os.return_value = ("OS", "Linux", "OK")
+    mock_spacy.return_value = ("Spacy", "Installed", "OK")
+    mock_version.return_value = ("Version", "0.1.0", "OK")
+    mock_engines.return_value = ("Engines", "All Good", "OK")
+    mock_write.return_value = ("Write", "Writable", "OK")
+    mock_docker.return_value = ("Docker", "Running", "OK")
+    mock_ghcr.return_value = ("GHCR", "Accessible", "OK")
+
+    result = runner.invoke(app, ["doctor"])
+    assert result.exit_code == 0
+    assert "All checks passed!" in result.stdout
+
+
+@patch("veildata.wizard.run_wizard")
+def test_cli_init(mock_wizard):
+    result = runner.invoke(app, ["init"])
+    assert result.exit_code == 0
+    mock_wizard.assert_called_once()
+
+
+def test_cli_mask_preview(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+
+    result = runner.invoke(
+        app,
+        [
+            "mask",
+            "this is a test",
+            "--preview",
+            "1",
+            "--dry-run",
+            "--config",
+            str(config_file),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Preview" in result.stdout
+    assert "[REDACTED_1]" in result.stdout
+
+
+def test_cli_mask_explain(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+
+    result = runner.invoke(
+        app, ["mask", "this is a test", "--explain", "--config", str(config_file)]
+    )
+    assert result.exit_code == 0
+    assert '"detections":' in result.stdout
+    assert '"label": "TEST"' in result.stdout
+
+
+def test_cli_unmask(tmp_path):
+    # First mask and save store
+    store_path = tmp_path / "tokens.json"
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+
+    mask_result = runner.invoke(
+        app,
+        [
+            "mask",
+            "this is a test",
+            "--store",
+            str(store_path),
+            "--config",
+            str(config_file),
+        ],
+    )
+    assert mask_result.exit_code == 0
+
+    # Then unmask
+    masked_text = "this is a [REDACTED_1]"
+    unmask_result = runner.invoke(
+        app, ["unmask", masked_text, "--store", str(store_path)]
+    )
+    assert unmask_result.exit_code == 0
+    assert "this is a test" in unmask_result.stdout.strip()
