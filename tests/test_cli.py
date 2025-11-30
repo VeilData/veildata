@@ -206,3 +206,26 @@ def test_cli_unmask(tmp_path):
     )
     assert unmask_result.exit_code == 0
     assert "this is a test" in unmask_result.stdout.strip()
+
+
+def test_cli_benchmark(tmp_path):
+    """Test that benchmark command runs and produces JSON output."""
+    result = runner.invoke(
+        app, ["benchmark", "--method", "regex", "--iterations", "5", "--size", "small"]
+    )
+    assert result.exit_code == 0
+    assert "Benchmark Results" in result.stdout
+    assert "regex" in result.stdout
+
+    # Verify JSON was created
+    import json
+    from pathlib import Path
+
+    bench_file = Path(".bench/last_run.json")
+    assert bench_file.exists(), "Benchmark JSON file was not created"
+
+    data = json.loads(bench_file.read_text())
+    assert data["method"] == "regex"
+    assert data["iterations"] == 5
+    assert "avg_latency_ms" in data
+    assert "p95_latency_ms" in data
