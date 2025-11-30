@@ -229,3 +229,90 @@ def test_cli_benchmark(tmp_path):
     assert data["iterations"] == 5
     assert "avg_latency_ms" in data
     assert "p95_latency_ms" in data
+
+
+def test_cli_mask_with_time(tmp_path):
+    """Test that mask command with --time flag shows timing information."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+
+    result = runner.invoke(
+        app, ["mask", "this is a test", "--time", "--config", str(config_file)]
+    )
+    assert result.exit_code == 0
+    assert "⏱️" in result.stdout
+    assert "Load:" in result.stdout
+    assert "Processing:" in result.stdout
+    assert "Total:" in result.stdout
+    assert "ms" in result.stdout
+
+
+def test_cli_mask_with_time_and_output(tmp_path):
+    """Test that mask command with --time flag works with file output."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+    output_file = tmp_path / "output.txt"
+
+    result = runner.invoke(
+        app,
+        [
+            "mask",
+            "this is a test",
+            "--time",
+            "--config",
+            str(config_file),
+            "--output",
+            str(output_file),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "⏱️" in result.stdout
+    assert output_file.exists()
+
+
+def test_cli_mask_with_time_dry_run(tmp_path):
+    """Test that mask command with --time flag works in dry-run mode."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+
+    result = runner.invoke(
+        app,
+        ["mask", "this is a test", "--time", "--dry-run", "--config", str(config_file)],
+    )
+    assert result.exit_code == 0
+    assert "⏱️" in result.stdout
+    assert "Load:" in result.stdout
+    assert "Processing:" in result.stdout
+
+
+def test_cli_unmask_with_time(tmp_path):
+    """Test that unmask command with --time flag shows timing information."""
+    # First mask and save store
+    store_path = tmp_path / "tokens.json"
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+
+    mask_result = runner.invoke(
+        app,
+        [
+            "mask",
+            "this is a test",
+            "--store",
+            str(store_path),
+            "--config",
+            str(config_file),
+        ],
+    )
+    assert mask_result.exit_code == 0
+
+    # Then unmask with timing
+    masked_text = "this is a [REDACTED_1]"
+    unmask_result = runner.invoke(
+        app, ["unmask", masked_text, "--store", str(store_path), "--time"]
+    )
+    assert unmask_result.exit_code == 0
+    assert "this is a test" in unmask_result.stdout
+    assert "⏱️" in unmask_result.stdout
+    assert "Load:" in unmask_result.stdout
+    assert "Processing:" in unmask_result.stdout
+    assert "Total:" in unmask_result.stdout

@@ -60,10 +60,14 @@ def mask(
     explain: bool = typer.Option(
         False, "--explain", help="Output detection explanations as JSON"
     ),
+    show_time: bool = typer.Option(
+        False, "--time", help="Show timing information for the operation"
+    ),
 ):
     from pathlib import Path
 
     from veildata.engine import build_masker
+    from veildata.utils import Timer
 
     """Mask PII in text or files using a configurable engine."""
 
@@ -162,6 +166,13 @@ def mask(
         )
         raise typer.Exit(code=1)
 
+    # Initialize timing if requested
+    load_timer = Timer() if show_time else None
+    process_timer = Timer() if show_time else None
+
+    if show_time:
+        load_timer.start()
+
     try:
         masker, store = build_masker(
             method,
@@ -171,6 +182,9 @@ def mask(
             verbose=verbose,
             config_dict=config,
         )
+
+        if show_time:
+            load_timer.stop()
     except ConfigMissingError as e:
         print_error(
             console,
@@ -234,7 +248,14 @@ def mask(
             console.print(json_output)
         return
 
+    # Measure processing time
+    if show_time:
+        process_timer.start()
+
     masked = masker(text)
+
+    if show_time:
+        process_timer.stop()
 
     if not dry_run:
         if output:
@@ -255,6 +276,15 @@ def mask(
         console.print(masked)
         console.print("\n(Dry run — no file written.)")
 
+    # Display timing information if requested
+    if show_time:
+        load_ms = load_timer.elapsed * 1000
+        process_ms = process_timer.elapsed * 1000
+        total_ms = load_ms + process_ms
+        console.print(
+            f"\n⏱️  [dim]Load: {load_ms:.2f}ms | Processing: {process_ms:.2f}ms | Total: {total_ms:.2f}ms[/]"
+        )
+
 
 @app.command("unmask", help="Reverse masking using stored token mappings.")
 def unmask(
@@ -262,11 +292,26 @@ def unmask(
     store_path: str = typer.Option(
         ..., "--store", "-s", help="Path to stored TokenStore mapping"
     ),
+    show_time: bool = typer.Option(
+        False, "--time", help="Show timing information for the operation"
+    ),
 ):
     from veildata.engine import build_unmasker
+    from veildata.utils import Timer
 
     """Unmask text using a stored TokenStore."""
+
+    # Initialize timing if requested
+    load_timer = Timer() if show_time else None
+    process_timer = Timer() if show_time else None
+
+    if show_time:
+        load_timer.start()
+
     unmasker = build_unmasker(store_path)
+
+    if show_time:
+        load_timer.stop()
 
     try:
         with open(input, "r") as f:
@@ -274,7 +319,25 @@ def unmask(
     except FileNotFoundError:
         text = input
 
-    typer.echo(unmasker(text))
+    # Measure processing time
+    if show_time:
+        process_timer.start()
+
+    result = unmasker(text)
+
+    if show_time:
+        process_timer.stop()
+
+    typer.echo(result)
+
+    # Display timing information if requested
+    if show_time:
+        load_ms = load_timer.elapsed * 1000
+        process_ms = process_timer.elapsed * 1000
+        total_ms = load_ms + process_ms
+        console.print(
+            f"\n⏱️  [dim]Load: {load_ms:.2f}ms | Processing: {process_ms:.2f}ms | Total: {total_ms:.2f}ms[/]"
+        )
 
 
 @app.command("benchmark", help="Run performance benchmarks.")
