@@ -37,3 +37,6 @@ ENV/
 .idea/
 coverage.xml
 .coverage
+
+# Benchmark results
+.bench/

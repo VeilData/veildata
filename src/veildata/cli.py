@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 import typer
@@ -274,6 +275,99 @@ def unmask(
         text = input
 
     typer.echo(unmasker(text))
+
+
+@app.command("benchmark", help="Run performance benchmarks.")
+def benchmark(
+    method: str = typer.Option(
+        "regex", "--method", "-m", help="Masking engine to benchmark"
+    ),
+    iterations: int = typer.Option(
+        100, "--iterations", "-n", help="Number of iterations"
+    ),
+    size: str = typer.Option(
+        "medium", "--size", "-s", help="Input size: small | medium | large"
+    ),
+):
+    """Measure performance of masking engines."""
+    import json
+    import statistics
+    from pathlib import Path
+
+    from veildata.engine import build_masker
+    from veildata.utils import Timer
+
+    console.print(
+        f"[bold]Running benchmark for method='{method}' with {iterations} iterations on '{size}' input...[/]"
+    )
+
+    # Generate sample data
+    sample_text = {
+        "small": "My email is test@example.com and phone is 555-0123.",
+        "medium": "My email is test@example.com and phone is 555-0123. " * 50,
+        "large": "My email is test@example.com and phone is 555-0123. " * 1000,
+    }.get(size, "My email is test@example.com")
+
+    # Prepare config with default patterns for benchmark
+    from veildata.defaults import DEFAULT_PATTERNS
+
+    config = {"patterns": DEFAULT_PATTERNS}
+
+    # Measure load time
+    with Timer() as load_timer:
+        masker, _ = build_masker(method, verbose=False, config_dict=config)
+
+    load_time_ms = load_timer.elapsed * 1000
+    console.print(f"Model Load Time: [green]{load_time_ms:.2f} ms[/]")
+
+    # Warmup
+    masker(sample_text)
+
+    # Measure execution time
+    times = []
+    with console.status("[bold green]Benchmarking..."):
+        for _ in range(iterations):
+            with Timer() as t:
+                masker(sample_text)
+            times.append(t.elapsed * 1000)
+
+    avg_time = statistics.mean(times)
+    p95_time = statistics.quantiles(times, n=20)[18]  # 95th percentile
+    p99_time = statistics.quantiles(times, n=100)[98]  # 99th percentile
+
+    # Print results
+    table = Table(title="Benchmark Results")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="green")
+
+    table.add_row("Method", method)
+    table.add_row("Input Size", f"{len(sample_text)} chars")
+    table.add_row("Iterations", str(iterations))
+    table.add_row("Load Time", f"{load_time_ms:.2f} ms")
+    table.add_row("Avg Latency", f"{avg_time:.2f} ms")
+    table.add_row("P95 Latency", f"{p95_time:.2f} ms")
+    table.add_row("P99 Latency", f"{p99_time:.2f} ms")
+
+    console.print(table)
+
+    # Save results
+    bench_dir = Path(".bench")
+    bench_dir.mkdir(exist_ok=True)
+
+    result = {
+        "timestamp": str(time.time()),
+        "method": method,
+        "input_size": len(sample_text),
+        "iterations": iterations,
+        "load_time_ms": load_time_ms,
+        "avg_latency_ms": avg_time,
+        "p95_latency_ms": p95_time,
+        "p99_latency_ms": p99_time,
+    }
+
+    output_file = bench_dir / "last_run.json"
+    output_file.write_text(json.dumps(result, indent=2))
+    console.print(f"\n[dim]Results saved to {output_file}[/]")
 
 
 @app.command("inspect", help="Show available masking engines and config paths.")
