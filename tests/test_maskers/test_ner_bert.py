@@ -12,11 +12,12 @@ from veildata.revealers import TokenStore
 @pytest.fixture
 def mock_model_and_tokenizer():
     """Mock transformers components to avoid downloading real models."""
-    with patch(
-        "veildata.maskers.ner_bert.AutoTokenizer"
-    ) as mock_tokenizer_class, patch(
-        "veildata.maskers.ner_bert.AutoModelForTokenClassification"
-    ) as mock_model_class:
+    with (
+        patch("veildata.maskers.ner_bert.AutoTokenizer") as mock_tokenizer_class,
+        patch(
+            "veildata.maskers.ner_bert.AutoModelForTokenClassification"
+        ) as mock_model_class,
+    ):
         # Mock tokenizer
         mock_tokenizer = MagicMock()
         mock_tokenizer_class.from_pretrained.return_value = mock_tokenizer
