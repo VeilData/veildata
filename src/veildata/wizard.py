@@ -33,7 +33,7 @@ def run_wizard():
     config_dir = Path.home() / ".veildata"
     config_path = config_dir / "config.toml"
 
-    config_content = f'# VeilData Configuration\n\n[options]\nmethod = "{engine}"\n'
+    config_content = f'# VeilData Configuration\n\nmethod = "{engine}"\n'
 
     if engine in ["spacy", "hybrid"]:
         model = Prompt.ask(

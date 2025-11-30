@@ -77,15 +77,17 @@ def build_masker(
     config_path: Optional[str] = None,
     ml_config_path: Optional[str] = None,
     verbose: bool = False,
+    config_dict: Optional[Dict] = None,
 ) -> Tuple[Module, TokenStore]:
     """
-    Build a masking pipeline (Compose) and a shared TokenStore.
-
-    Returns:
-        (Module, TokenStore)
+    Factory function to build a masker based on configuration.
     """
+    # Load main config
+    if config_dict is not None:
+        config = config_dict
+    else:
+        config = load_config(config_path, verbose=verbose)
 
-    config = load_config(config_path, verbose=verbose)
     ml_config = load_config(ml_config_path, verbose=verbose)
     method = method.lower()
     store = TokenStore()
@@ -170,12 +172,15 @@ def build_masker(
             return DetectionPipeline(detector, store=store), store
 
     # Legacy / Rules Mode (no patterns in config)
+    # Filter out top-level keys that are not for masker constructors
+    masker_config = {k: v for k, v in config.items() if k not in ["method", "ml"]}
+
     if method == "all":
         maskers = []
         for key, dotted_path in MASKER_REGISTRY.items():
             cls = _lazy_import(dotted_path)
             vprint(f"Loading masker: {key}")
-            maskers.append(cls(store=store, **config))
+            maskers.append(cls(store=store, **masker_config))
         return Compose(maskers), store
 
     if method not in MASKER_REGISTRY:
@@ -188,7 +193,7 @@ def build_masker(
     cls = _lazy_import(cls_path)
     vprint(f"Loading masker: {method}")
 
-    masker = cls(store=store, **config)
+    masker = cls(store=store, **masker_config)
     return Compose([masker]), store
 
 

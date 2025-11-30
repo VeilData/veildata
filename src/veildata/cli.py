@@ -56,6 +56,9 @@ def mask(
         False, "--no-ml", help="Force rules-only mode (overrides detect-mode)"
     ),
     force: bool = typer.Option(False, "--force", "-f", help="Overwrite existing files"),
+    explain: bool = typer.Option(
+        False, "--explain", help="Output detection explanations as JSON"
+    ),
 ):
     from pathlib import Path
 
@@ -113,8 +116,8 @@ def mask(
         # If method wasn't explicitly set via CLI and config has a method, use it
         # We detect CLI default by checking if it's "regex" (the default)
         # This is a heuristic - ideally typer would tell us if the value was defaulted
-        if method == "regex" and config.get("options", {}).get("method"):
-            method = config["options"]["method"]
+        if method == "regex" and config.get("method"):
+            method = config["method"]
             if verbose:
                 console.print(f"[veildata] Using method '{method}' from config")
 
@@ -138,6 +141,17 @@ def mask(
             method = "regex"
             if detect_mode == "rules":  # Only override if not explicitly set
                 detect_mode = "hybrid"
+
+        # Handle "regex" mode - if no patterns are provided, use defaults
+        # This fixes the issue where wizard-generated config has no patterns
+        if (
+            method == "regex"
+            and not config.get("patterns")
+            and not config.get("pattern")
+        ):
+            from veildata.defaults import DEFAULT_PATTERNS
+
+            config["patterns"] = DEFAULT_PATTERNS
     except ConfigMissingError as e:
         print_error(
             console,
@@ -154,6 +168,7 @@ def mask(
             config_path=config_path,
             ml_config_path=ml_config,
             verbose=verbose,
+            config_dict=config,
         )
     except ConfigMissingError as e:
         print_error(
@@ -179,6 +194,44 @@ def mask(
             text = f.read()
     except FileNotFoundError:
         text = input  # treat as raw text input
+
+    # Handle explain mode - output JSON instead of masking
+    if explain:
+        import json
+
+        # For explain mode, we need a DetectionPipeline with the masker
+        if hasattr(masker, "detector"):
+            # It's already a DetectionPipeline
+            explanation = masker.explain(text)
+        elif hasattr(masker, "modules"):
+            # It's a Compose - not ideal for explain mode
+            console.print(
+                "[yellow]Warning: --explain works best with single detector modes (regex, spacy, bert)[/]"
+            )
+            # Try to extract first module if it's a pipeline
+            first_module = masker.modules[0] if masker.modules else None
+            if hasattr(first_module, "explain"):
+                explanation = first_module.explain(text)
+            else:
+                console.print(
+                    "[red]Error: Cannot explain with this masking configuration[/]"
+                )
+                raise typer.Exit(code=1)
+        else:
+            console.print(
+                "[red]Error: --explain is only supported in detector-based modes[/]"
+            )
+            raise typer.Exit(code=1)
+
+        json_output = json.dumps(explanation, indent=2)
+        if output:
+            with open(output, "w") as f:
+                f.write(json_output)
+            if verbose:
+                console.print(f"✅ Explanation written to {output}")
+        else:
+            console.print(json_output)
+        return
 
     masked = masker(text)
 

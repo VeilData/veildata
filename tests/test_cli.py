@@ -57,7 +57,7 @@ def test_wizard_spacy_config(tmp_path):
     # Create config like wizard would
     config_file = tmp_path / "config.toml"
     config_file.write_text(
-        '[options]\nmethod = "spacy"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
+        'method = "spacy"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
     )
 
     input_text = "Test text"
@@ -74,7 +74,7 @@ def test_wizard_hybrid_config(tmp_path):
     # Create config like wizard would
     config_file = tmp_path / "config.toml"
     config_file.write_text(
-        '[options]\nmethod = "hybrid"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
+        'method = "hybrid"\n\n[ml.spacy]\nenabled = true\nmodel = "en_core_web_lg"\n'
     )
 
     input_text = "Test email@example.com"

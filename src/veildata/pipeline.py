@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict, Optional
 
 from veildata.core import Module
 from veildata.detectors import Detector
@@ -21,6 +21,45 @@ class DetectionPipeline(Module):
         self.store = store
         self.mask_format = mask_format
         self.counter = 0
+
+    def explain(self, text: str) -> Dict:
+        """
+        Run detection and return explanation of what was detected.
+
+        Returns:
+            Dict with 'original' text and 'detections' list containing metadata
+            for each detected span.
+        """
+        spans = self.detector.detect(text)
+
+        # Sort spans by start position
+        spans.sort(key=lambda x: x.start)
+
+        # Filter overlapping spans
+        filtered_spans = []
+        last_end = -1
+        for span in spans:
+            if span.start >= last_end:
+                filtered_spans.append(span)
+                last_end = span.end
+
+        detections = []
+        for span in filtered_spans:
+            detections.append(
+                {
+                    "start": span.start,
+                    "end": span.end,
+                    "text": span.text,
+                    "label": span.label,
+                    "detector": span.source,
+                    "score": span.score,
+                }
+            )
+
+        return {
+            "original": text,
+            "detections": detections,
+        }
 
     def forward(self, text: str) -> str:
         spans = self.detector.detect(text)
