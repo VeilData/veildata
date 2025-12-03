@@ -3,9 +3,9 @@ from unittest.mock import patch
 import pytest
 
 from veildata.engine import (
-    build_masker,
-    build_unmasker,
-    list_available_maskers,
+    build_redactor,
+    build_revealer,
+    list_available_redactors,
     list_engines,
     load_config,
 )
@@ -37,53 +37,53 @@ def test_list_engines():
     assert "hybrid" in names
 
 
-def test_list_available_maskers():
-    maskers = list_available_maskers()
-    assert "regex" in maskers
-    assert "ner_spacy" in maskers
-    assert "all" in maskers
+def test_list_available_redactors():
+    redactors = list_available_redactors()
+    assert "regex" in redactors
+    assert "ner_spacy" in redactors
+    assert "all" in redactors
 
 
-def test_build_masker_regex():
+def test_build_redactor_regex():
     config = {"patterns": {"TEST": "test"}}
-    masker, store = build_masker(method="regex", config_dict=config)
-    assert hasattr(masker, "detector")  # Should be a pipeline
+    redactor, store = build_redactor(method="regex", config_dict=config)
+    assert hasattr(redactor, "detector")  # Should be a pipeline
     assert store is not None
 
 
 @patch("veildata.engine.load_config")
 @patch("veildata.detectors.SpacyDetector")
-def test_build_masker_spacy_ml(mock_spacy, mock_load_config):
+def test_build_redactor_spacy_ml(mock_spacy, mock_load_config):
     config = {"patterns": {"dummy": "pattern"}}
     # load_config is called for ml_config. Return spacy config.
     mock_load_config.return_value = {"ml": {"spacy": {"enabled": True}}}
 
-    masker, store = build_masker(
+    redactor, store = build_redactor(
         method="ner_spacy", detect_mode="ml", config_dict=config
     )
-    assert hasattr(masker, "detector")
+    assert hasattr(redactor, "detector")
     mock_spacy.assert_called()
 
 
 @patch("veildata.engine.load_config")
 @patch("veildata.detectors.BertDetector")
-def test_build_masker_bert_ml(mock_bert, mock_load_config):
+def test_build_redactor_bert_ml(mock_bert, mock_load_config):
     config = {"patterns": {"dummy": "pattern"}}
     # load_config is called for ml_config. Return bert config.
     mock_load_config.return_value = {"ml": {"bert": {"enabled": True}}}
 
-    masker, store = build_masker(
+    redactor, store = build_redactor(
         method="ner_bert", detect_mode="ml", config_dict=config
     )
-    assert hasattr(masker, "detector")
+    assert hasattr(redactor, "detector")
     mock_bert.assert_called()
 
 
-def test_build_unmasker(tmp_path):
+def test_build_revealer(tmp_path):
     store = TokenStore()
     store.record("[REDACTED_1]", "secret")
     store_path = tmp_path / "tokens.json"
     store.save(str(store_path))
 
-    unmasker = build_unmasker(str(store_path))
-    assert unmasker("This is [REDACTED_1]") == "This is secret"
+    revealer = build_revealer(str(store_path))
+    assert revealer("This is [REDACTED_1]") == "This is secret"

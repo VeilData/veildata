@@ -16,8 +16,8 @@ def run_cli(args):
     return result
 
 
-def test_phone_regex_masking(tmp_path):
-    """Test basic phone number masking via CLI."""
+def test_phone_regex_redaction(tmp_path):
+    """Test basic phone number redaction via CLI."""
     # Create a simple config file
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
@@ -26,7 +26,7 @@ def test_phone_regex_masking(tmp_path):
 
     input_text = "Call me at 555-123-4567 today."
     result = run_cli(
-        ["mask", input_text, "--method", "regex", "--config", str(config_file)]
+        ["redact", input_text, "--method", "regex", "--config", str(config_file)]
     )
 
     assert result.returncode == 0, f"STDERR: {result.stderr}"
@@ -34,8 +34,8 @@ def test_phone_regex_masking(tmp_path):
     assert "555-123-4567" not in result.stdout
 
 
-def test_email_regex_masking(tmp_path):
-    """Test basic email masking via CLI."""
+def test_email_regex_redaction(tmp_path):
+    """Test basic email redaction via CLI."""
     # Create a simple config file
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
@@ -44,7 +44,7 @@ def test_email_regex_masking(tmp_path):
 
     input_text = "Email test@example.com for info."
     result = run_cli(
-        ["mask", input_text, "--method", "regex", "--config", str(config_file)]
+        ["redact", input_text, "--method", "regex", "--config", str(config_file)]
     )
 
     assert result.returncode == 0, f"STDERR: {result.stderr}"
@@ -54,7 +54,7 @@ def test_email_regex_masking(tmp_path):
 
 def test_cli_missing_config():
     """Test that CLI handles missing config file gracefully."""
-    result = run_cli(["mask", "input.txt", "--config", "nonexistent_config.yaml"])
+    result = run_cli(["redact", "input.txt", "--config", "nonexistent_config.yaml"])
     assert result.returncode == 1
     assert "Configuration Error" in result.stdout
 
@@ -69,11 +69,11 @@ def test_wizard_spacy_config(tmp_path):
 
     input_text = "Test text"
     # This will fail due to missing model, but should not raise ValueError
-    result = run_cli(["mask", input_text, "--config", str(config_file)])
+    result = run_cli(["redact", input_text, "--config", str(config_file)])
 
     # Should fail with model error, not ValueError about unknown method
     assert "ValueError" not in result.stderr
-    assert "Unknown masking method" not in result.stderr
+    assert "Unknown redaction method" not in result.stderr
 
 
 def test_wizard_hybrid_config(tmp_path):
@@ -86,17 +86,17 @@ def test_wizard_hybrid_config(tmp_path):
 
     input_text = "Test email@example.com"
     # This will fail due to missing spacy model, but should not raise ValueError
-    result = run_cli(["mask", input_text, "--config", str(config_file)])
+    result = run_cli(["redact", input_text, "--config", str(config_file)])
 
     # Should fail with model error, not ValueError about unknown method
     assert "ValueError" not in result.stderr
-    assert "Unknown masking method" not in result.stderr
+    assert "Unknown redaction method" not in result.stderr
 
 
 def test_cli_inspect():
     result = runner.invoke(app, ["inspect"])
     assert result.exit_code == 0
-    assert "Available Masking Engines" in result.stdout
+    assert "Available Redaction Engines" in result.stdout
     assert "regex" in result.stdout
     assert "spacy" in result.stdout
 
@@ -147,14 +147,14 @@ def test_cli_init(mock_wizard):
     mock_wizard.assert_called_once()
 
 
-def test_cli_mask_preview(tmp_path):
+def test_cli_redact_preview(tmp_path):
     config_file = tmp_path / "config.yaml"
     config_file.write_text('patterns:\n  TEST: "test"\n')
 
     result = runner.invoke(
         app,
         [
-            "mask",
+            "redact",
             "this is a test",
             "--preview",
             "1",
@@ -168,28 +168,28 @@ def test_cli_mask_preview(tmp_path):
     assert "[REDACTED_1]" in result.stdout
 
 
-def test_cli_mask_explain(tmp_path):
+def test_cli_redact_explain(tmp_path):
     config_file = tmp_path / "config.yaml"
     config_file.write_text('patterns:\n  TEST: "test"\n')
 
     result = runner.invoke(
-        app, ["mask", "this is a test", "--explain", "--config", str(config_file)]
+        app, ["redact", "this is a test", "--explain", "--config", str(config_file)]
     )
     assert result.exit_code == 0
     assert '"detections":' in result.stdout
     assert '"label": "TEST"' in result.stdout
 
 
-def test_cli_unmask(tmp_path):
-    # First mask and save store
+def test_cli_reveal(tmp_path):
+    # First redact and save store
     store_path = tmp_path / "tokens.json"
     config_file = tmp_path / "config.yaml"
     config_file.write_text('patterns:\n  TEST: "test"\n')
 
-    mask_result = runner.invoke(
+    redact_result = runner.invoke(
         app,
         [
-            "mask",
+            "redact",
             "this is a test",
             "--store",
             str(store_path),
@@ -197,15 +197,15 @@ def test_cli_unmask(tmp_path):
             str(config_file),
         ],
     )
-    assert mask_result.exit_code == 0
+    assert redact_result.exit_code == 0
 
-    # Then unmask
-    masked_text = "this is a [REDACTED_1]"
-    unmask_result = runner.invoke(
-        app, ["unmask", masked_text, "--store", str(store_path)]
+    # Then reveal
+    redacted_text = "this is a [REDACTED_1]"
+    reveal_result = runner.invoke(
+        app, ["reveal", redacted_text, "--store", str(store_path)]
     )
-    assert unmask_result.exit_code == 0
-    assert "this is a test" in unmask_result.stdout.strip()
+    assert reveal_result.exit_code == 0
+    assert "this is a test" in reveal_result.stdout.strip()
 
 
 def test_cli_benchmark(tmp_path):
@@ -231,13 +231,13 @@ def test_cli_benchmark(tmp_path):
     assert "p95_latency_ms" in data
 
 
-def test_cli_mask_with_time(tmp_path):
-    """Test that mask command with --time flag shows timing information."""
+def test_cli_redact_with_time(tmp_path):
+    """Test that redact command with --time flag shows timing information."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text('patterns:\n  TEST: "test"\n')
 
     result = runner.invoke(
-        app, ["mask", "this is a test", "--time", "--config", str(config_file)]
+        app, ["redact", "this is a test", "--time", "--config", str(config_file)]
     )
     assert result.exit_code == 0
     assert "⏱️" in result.stdout
@@ -247,8 +247,8 @@ def test_cli_mask_with_time(tmp_path):
     assert "ms" in result.stdout
 
 
-def test_cli_mask_with_time_and_output(tmp_path):
-    """Test that mask command with --time flag works with file output."""
+def test_cli_redact_with_time_and_output(tmp_path):
+    """Test that redact command with --time flag works with file output."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text('patterns:\n  TEST: "test"\n')
     output_file = tmp_path / "output.txt"
@@ -256,7 +256,7 @@ def test_cli_mask_with_time_and_output(tmp_path):
     result = runner.invoke(
         app,
         [
-            "mask",
+            "redact",
             "this is a test",
             "--time",
             "--config",
@@ -270,14 +270,21 @@ def test_cli_mask_with_time_and_output(tmp_path):
     assert output_file.exists()
 
 
-def test_cli_mask_with_time_dry_run(tmp_path):
-    """Test that mask command with --time flag works in dry-run mode."""
+def test_cli_redact_with_time_dry_run(tmp_path):
+    """Test that redact command with --time flag works in dry-run mode."""
     config_file = tmp_path / "config.yaml"
     config_file.write_text('patterns:\n  TEST: "test"\n')
 
     result = runner.invoke(
         app,
-        ["mask", "this is a test", "--time", "--dry-run", "--config", str(config_file)],
+        [
+            "redact",
+            "this is a test",
+            "--time",
+            "--dry-run",
+            "--config",
+            str(config_file),
+        ],
     )
     assert result.exit_code == 0
     assert "⏱️" in result.stdout
@@ -285,17 +292,17 @@ def test_cli_mask_with_time_dry_run(tmp_path):
     assert "Processing:" in result.stdout
 
 
-def test_cli_unmask_with_time(tmp_path):
-    """Test that unmask command with --time flag shows timing information."""
-    # First mask and save store
+def test_cli_reveal_with_time(tmp_path):
+    """Test that reveal command with --time flag shows timing information."""
+    # First redact and save store
     store_path = tmp_path / "tokens.json"
     config_file = tmp_path / "config.yaml"
     config_file.write_text('patterns:\n  TEST: "test"\n')
 
-    mask_result = runner.invoke(
+    redact_result = runner.invoke(
         app,
         [
-            "mask",
+            "redact",
             "this is a test",
             "--store",
             str(store_path),
@@ -303,16 +310,16 @@ def test_cli_unmask_with_time(tmp_path):
             str(config_file),
         ],
     )
-    assert mask_result.exit_code == 0
+    assert redact_result.exit_code == 0
 
-    # Then unmask with timing
-    masked_text = "this is a [REDACTED_1]"
-    unmask_result = runner.invoke(
-        app, ["unmask", masked_text, "--store", str(store_path), "--time"]
+    # Then reveal with timing
+    redacted_text = "this is a [REDACTED_1]"
+    reveal_result = runner.invoke(
+        app, ["reveal", redacted_text, "--store", str(store_path), "--time"]
     )
-    assert unmask_result.exit_code == 0
-    assert "this is a test" in unmask_result.stdout
-    assert "⏱️" in unmask_result.stdout
-    assert "Load:" in unmask_result.stdout
-    assert "Processing:" in unmask_result.stdout
-    assert "Total:" in unmask_result.stdout
+    assert reveal_result.exit_code == 0
+    assert "this is a test" in reveal_result.stdout
+    assert "⏱️" in reveal_result.stdout
+    assert "Load:" in reveal_result.stdout
+    assert "Processing:" in reveal_result.stdout
+    assert "Total:" in reveal_result.stdout

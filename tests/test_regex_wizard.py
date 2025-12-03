@@ -16,7 +16,7 @@ def test_wizard_regex_config(tmp_path):
     config_file.write_text('method = "regex"\n')
 
     input_text = "Call 555-123-4567"
-    result = run_cli(["mask", input_text, "--config", str(config_file)])
+    result = run_cli(["redact", input_text, "--config", str(config_file)])
 
     assert result.returncode == 0, f"STDERR: {result.stderr}"
     assert "[REDACTED_1]" in result.stdout

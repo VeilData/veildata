@@ -15,21 +15,21 @@ from veildata.core import Module
 from veildata.exceptions import ConfigMissingError
 from veildata.revealers import TokenStore
 
-MASKER_REGISTRY: Dict[str, str] = {
-    "regex": "veildata.maskers.regex.RegexMasker",
-    "ner_spacy": "veildata.maskers.ner_spacy.SpacyNERMasker",
-    "ner_bert": "veildata.maskers.ner_bert.BERTNERMasker",
+REDACTOR_REGISTRY: Dict[str, str] = {
+    "regex": "veildata.redactors.regex.RegexRedactor",
+    "ner_spacy": "veildata.redactors.ner_spacy.SpacyNERRedactor",
+    "ner_bert": "veildata.redactors.ner_bert.BERTNERRedactor",
 }
 
 
-def list_available_maskers() -> List[str]:
-    """Return available masking engines."""
-    return list(MASKER_REGISTRY.keys()) + ["all"]
+def list_available_redactors() -> List[str]:
+    """Return available redaction engines."""
+    return list(REDACTOR_REGISTRY.keys()) + ["all"]
 
 
 def list_engines():
     return [
-        ("regex", "Pattern-based masking (fast, deterministic)."),
+        ("regex", "Pattern-based redaction (fast, deterministic)."),
         ("spacy", "NER-based entity detection."),
         ("hybrid", "Regex + NER combined."),
     ]
@@ -64,14 +64,14 @@ def load_config(config_path: Optional[str], verbose: bool = False) -> dict:
 def _lazy_import(dotted_path: str):
     """
     Import a class by dotted string path:
-    e.g. "veildata.maskers.regex.RegexMasker"
+    e.g. "veildata.redactors.regex.RegexRedactor"
     """
     module_path, cls_name = dotted_path.rsplit(".", 1)
     module = __import__(module_path, fromlist=[cls_name])
     return getattr(module, cls_name)
 
 
-def build_masker(
+def build_redactor(
     method: str = "regex",
     detect_mode: str = "rules",
     config_path: Optional[str] = None,
@@ -80,7 +80,7 @@ def build_masker(
     config_dict: Optional[Dict] = None,
 ) -> Tuple[Module, TokenStore]:
     """
-    Factory function to build a masker based on configuration.
+    Factory function to build a redactor based on configuration.
     """
     # Load main config
     if config_dict is not None:
@@ -172,38 +172,37 @@ def build_masker(
             return DetectionPipeline(detector, store=store), store
 
     # Legacy / Rules Mode (no patterns in config)
-    # Filter out top-level keys that are not for masker constructors
-    masker_config = {k: v for k, v in config.items() if k not in ["method", "ml"]}
+    # Filter out top-level keys that are not for redactor constructors
+    redactor_config = {k: v for k, v in config.items() if k not in ["method", "ml"]}
 
     if method == "all":
-        maskers = []
-        for key, dotted_path in MASKER_REGISTRY.items():
+        redactors = []
+        for key, dotted_path in REDACTOR_REGISTRY.items():
             cls = _lazy_import(dotted_path)
-            vprint(f"Loading masker: {key}")
-            maskers.append(cls(store=store, **masker_config))
-        return Compose(maskers), store
+            vprint(f"Loading redactor: {key}")
+            redactors.append(cls(store=store, **redactor_config))
+        return Compose(redactors), store
 
-    if method not in MASKER_REGISTRY:
+    if method not in REDACTOR_REGISTRY:
         raise ValueError(
-            f"Unknown masking method '{method}'. "
-            f"Available: {', '.join(list_available_maskers())}"
+            f"Unknown redaction method '{method}'. "
+            f"Available: {', '.join(list_available_redactors())}"
         )
 
-    cls_path = MASKER_REGISTRY[method]
+    cls_path = REDACTOR_REGISTRY[method]
     cls = _lazy_import(cls_path)
-    vprint(f"Loading masker: {method}")
+    vprint(f"Loading redactor: {method}")
 
-    masker = cls(store=store, **masker_config)
-    return Compose([masker]), store
+    redactor = cls(store=store, **redactor_config)
+    return Compose([redactor]), store
 
 
-def build_unmasker(store_path: str):
+def build_revealer(store_path: str):
     """
-    Build a callable unmasker from a saved TokenStore mapping.
+    Build a callable revealer from a saved TokenStore mapping.
 
     Returns:
         callable(text: str) -> str
     """
     store = TokenStore.load(store_path)
-    return store.unmask
-    return store.unmask
+    return store.reveal

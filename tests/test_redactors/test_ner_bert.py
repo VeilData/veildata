@@ -1,11 +1,11 @@
-"""Tests for BERTNERMasker to achieve 100% coverage."""
+"""Tests for BERTNERRedactor to achieve 100% coverage."""
 
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import torch
 
-from veildata.maskers.ner_bert import BERTNERMasker
+from veildata.redactors.ner_bert import BERTNERRedactor
 from veildata.revealers import TokenStore
 
 
@@ -13,9 +13,9 @@ from veildata.revealers import TokenStore
 def mock_model_and_tokenizer():
     """Mock transformers components to avoid downloading real models."""
     with (
-        patch("veildata.maskers.ner_bert.AutoTokenizer") as mock_tokenizer_class,
+        patch("veildata.redactors.ner_bert.AutoTokenizer") as mock_tokenizer_class,
         patch(
-            "veildata.maskers.ner_bert.AutoModelForTokenClassification"
+            "veildata.redactors.ner_bert.AutoModelForTokenClassification"
         ) as mock_model_class,
     ):
         # Mock tokenizer
@@ -31,92 +31,92 @@ def mock_model_and_tokenizer():
 
 
 def test_init_default(mock_model_and_tokenizer):
-    """Test BERTNERMasker initialization with default parameters."""
+    """Test BERTNERRedactor initialization with default parameters."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
-    assert masker.model_name == "dslim/bert-base-NER"
-    assert masker.mask_token == "[REDACTED_{counter}]"
-    assert masker.store is None
-    assert masker.counter == 0
-    assert masker.device in ["cpu", "cuda"]
-    assert masker.use_fp16 is False
+    assert redactor.model_name == "dslim/bert-base-NER"
+    assert redactor.redaction_token == "[REDACTED_{counter}]"
+    assert redactor.store is None
+    assert redactor.counter == 0
+    assert redactor.device in ["cpu", "cuda"]
+    assert redactor.use_fp16 is False
 
 
 def test_init_custom_model(mock_model_and_tokenizer):
-    """Test BERTNERMasker with custom model name."""
-    masker = BERTNERMasker(model_name="custom/model")
-    assert masker.model_name == "custom/model"
+    """Test BERTNERRedactor with custom model name."""
+    redactor = BERTNERRedactor(model_name="custom/model")
+    assert redactor.model_name == "custom/model"
 
 
 def test_init_with_store(mock_model_and_tokenizer):
-    """Test BERTNERMasker with TokenStore."""
+    """Test BERTNERRedactor with TokenStore."""
     store = TokenStore()
-    masker = BERTNERMasker(store=store)
-    assert masker.store is store
+    redactor = BERTNERRedactor(store=store)
+    assert redactor.store is store
 
 
-def test_init_custom_mask_token(mock_model_and_tokenizer):
-    """Test BERTNERMasker with custom mask token."""
-    masker = BERTNERMasker(mask_token="<MASKED_{counter}>")
-    assert masker.mask_token == "<MASKED_{counter}>"
+def test_init_custom_redaction_token(mock_model_and_tokenizer):
+    """Test BERTNERRedactor with custom mask token."""
+    redactor = BERTNERRedactor(redaction_token="<MASKED_{counter}>")
+    assert redactor.redaction_token == "<MASKED_{counter}>"
 
 
 def test_init_explicit_cpu_device(mock_model_and_tokenizer):
-    """Test BERTNERMasker with explicit CPU device."""
+    """Test BERTNERRedactor with explicit CPU device."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker(device="cpu")
+    redactor = BERTNERRedactor(device="cpu")
 
-    assert masker.device == "cpu"
-    assert masker.use_fp16 is False  # FP16 disabled on CPU
+    assert redactor.device == "cpu"
+    assert redactor.use_fp16 is False  # FP16 disabled on CPU
     mock_model.to.assert_called_with("cpu")
 
 
 @patch("torch.cuda.is_available", return_value=True)
 def test_init_gpu_auto_detect(mock_cuda, mock_model_and_tokenizer):
-    """Test BERTNERMasker auto-detects GPU when available."""
+    """Test BERTNERRedactor auto-detects GPU when available."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
-    assert masker.device == "cuda"
+    assert redactor.device == "cuda"
 
 
 @patch("torch.cuda.is_available", return_value=False)
 def test_init_cpu_auto_detect(mock_cuda, mock_model_and_tokenizer):
-    """Test BERTNERMasker auto-detects CPU when GPU not available."""
-    masker = BERTNERMasker()
-    assert masker.device == "cpu"
+    """Test BERTNERRedactor auto-detects CPU when GPU not available."""
+    redactor = BERTNERRedactor()
+    assert redactor.device == "cpu"
 
 
 @patch("torch.cuda.is_available", return_value=True)
 def test_init_fp16_enabled_on_gpu(mock_cuda, mock_model_and_tokenizer):
-    """Test BERTNERMasker enables FP16 on GPU."""
+    """Test BERTNERRedactor enables FP16 on GPU."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker(device="cuda", use_fp16=True)
+    redactor = BERTNERRedactor(device="cuda", use_fp16=True)
 
-    assert masker.use_fp16 is True
+    assert redactor.use_fp16 is True
     mock_model.half.assert_called_once()
 
 
 def test_init_fp16_disabled_on_cpu(mock_model_and_tokenizer):
-    """Test BERTNERMasker disables FP16 on CPU even if requested."""
+    """Test BERTNERRedactor disables FP16 on CPU even if requested."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker(device="cpu", use_fp16=True)
+    redactor = BERTNERRedactor(device="cpu", use_fp16=True)
 
-    assert masker.use_fp16 is False
+    assert redactor.use_fp16 is False
     mock_model.half.assert_not_called()
 
 
 def test_init_eval_mode_enabled(mock_model_and_tokenizer):
-    """Test BERTNERMasker sets model to eval mode."""
+    """Test BERTNERRedactor sets model to eval mode."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    _ = BERTNERMasker()
+    _ = BERTNERRedactor()
 
     mock_model.eval.assert_called_once()
 
@@ -124,25 +124,25 @@ def test_init_eval_mode_enabled(mock_model_and_tokenizer):
 def test_forward_no_entities(mock_model_and_tokenizer):
     """Test forward pass when no entities are detected."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
     # Mock _get_entity_spans to return no entities
-    masker._get_entity_spans = MagicMock(return_value=[])
+    redactor._get_entity_spans = MagicMock(return_value=[])
 
     text = "This text has no entities."
-    result = masker(text)
+    result = redactor(text)
 
     assert result == text
-    assert masker.counter == 0
+    assert redactor.counter == 0
 
 
 def test_forward_with_entities(mock_model_and_tokenizer):
     """Test forward pass with entities detected."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
     # Mock _get_entity_spans
-    masker._get_entity_spans = MagicMock(
+    redactor._get_entity_spans = MagicMock(
         return_value=[
             {"start": 0, "end": 4, "label": "PER", "text": "John"},
             {"start": 14, "end": 23, "label": "ORG", "text": "Microsoft"},
@@ -150,25 +150,25 @@ def test_forward_with_entities(mock_model_and_tokenizer):
     )
 
     text = "John works at Microsoft."
-    result = masker(text)
+    result = redactor(text)
 
     assert result == "[REDACTED_2] works at [REDACTED_1]."
-    assert masker.counter == 2
+    assert redactor.counter == 2
 
 
 def test_forward_with_store(mock_model_and_tokenizer):
     """Test forward pass records entities in store."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
     store = TokenStore()
-    masker = BERTNERMasker(store=store)
+    redactor = BERTNERRedactor(store=store)
 
     # Mock _get_entity_spans
-    masker._get_entity_spans = MagicMock(
+    redactor._get_entity_spans = MagicMock(
         return_value=[{"start": 0, "end": 4, "label": "PER", "text": "John"}]
     )
 
     text = "John is here."
-    result = masker(text)
+    result = redactor(text)
 
     assert "[REDACTED_1]" in result
     assert store.mappings["[REDACTED_1]"] == "John"
@@ -177,43 +177,43 @@ def test_forward_with_store(mock_model_and_tokenizer):
 def test_forward_entity_text_mismatch(mock_model_and_tokenizer):
     """Test forward pass skips entities with text mismatch."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
     # Mock entity with text that doesn't match the actual text
-    masker._get_entity_spans = MagicMock(
+    redactor._get_entity_spans = MagicMock(
         return_value=[{"start": 0, "end": 4, "label": "PER", "text": "Wrong"}]
     )
 
     text = "John is here."
-    result = masker(text)
+    result = redactor(text)
 
     # Should skip the entity due to mismatch
     assert result == text
-    assert masker.counter == 0
+    assert redactor.counter == 0
 
 
 def test_forward_counter_increments(mock_model_and_tokenizer):
     """Test counter increments correctly across multiple calls."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
-    masker._get_entity_spans = MagicMock(
+    redactor._get_entity_spans = MagicMock(
         return_value=[{"start": 0, "end": 4, "label": "PER", "text": "John"}]
     )
 
     text = "John is here."
-    masker(text)
-    assert masker.counter == 1
+    redactor(text)
+    assert redactor.counter == 1
 
-    masker(text)
-    assert masker.counter == 2
+    redactor(text)
+    assert redactor.counter == 2
 
 
 def test_get_entity_spans_basic(mock_model_and_tokenizer):
     """Test _get_entity_spans with basic entity detection."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
     # Mock tokenizer outputs
     mock_tokenizer.return_value = {
@@ -234,7 +234,7 @@ def test_get_entity_spans_basic(mock_model_and_tokenizer):
     mock_tokenizer._convert_id_to_token.return_value = "John"
     mock_tokenizer.convert_tokens_to_string.return_value = "John"
 
-    entities = masker._get_entity_spans("John")
+    entities = redactor._get_entity_spans("John")
 
     assert len(entities) == 1
     assert entities[0]["label"] == "PER"
@@ -245,7 +245,7 @@ def test_get_entity_spans_no_entities(mock_model_and_tokenizer):
     """Test _get_entity_spans when no entities detected."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
     # Mock tokenizer outputs with no entities
     mock_tokenizer.return_value = {
@@ -262,7 +262,7 @@ def test_get_entity_spans_no_entities(mock_model_and_tokenizer):
     mock_output.logits = mock_logits
     mock_model.return_value = mock_output
 
-    entities = masker._get_entity_spans("text")
+    entities = redactor._get_entity_spans("text")
 
     assert len(entities) == 0
 
@@ -271,7 +271,7 @@ def test_get_entity_spans_continuation(mock_model_and_tokenizer):
     """Test _get_entity_spans handles I- prefix continuation."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
     # Mock two-token entity: "John" "Smith"
     mock_tokenizer.return_value = {
@@ -304,7 +304,7 @@ def test_get_entity_spans_continuation(mock_model_and_tokenizer):
     mock_tokenizer._convert_id_to_token.side_effect = mock_convert_id_to_token
     mock_tokenizer.convert_tokens_to_string.side_effect = mock_convert_tokens_to_string
 
-    entities = masker._get_entity_spans("John Smith")
+    entities = redactor._get_entity_spans("John Smith")
 
     assert len(entities) == 1
     assert entities[0]["label"] == "PER"
@@ -316,7 +316,7 @@ def test_get_entity_spans_end_entity(mock_model_and_tokenizer):
     """Test _get_entity_spans handles entity at end of sequence."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
     # Entity ending right before [SEP]
     mock_tokenizer.return_value = {
@@ -335,7 +335,7 @@ def test_get_entity_spans_end_entity(mock_model_and_tokenizer):
     mock_tokenizer._convert_id_to_token.return_value = "John"
     mock_tokenizer.convert_tokens_to_string.return_value = "John"
 
-    entities = masker._get_entity_spans("John")
+    entities = redactor._get_entity_spans("John")
 
     # Should capture the entity even though it's at the end
     assert len(entities) == 1
@@ -345,7 +345,7 @@ def test_get_entity_spans_multiple_separate_entities(mock_model_and_tokenizer):
     """Test _get_entity_spans with multiple separate entities."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
     # "John" O O "Microsoft"
     mock_tokenizer.return_value = {
@@ -376,7 +376,7 @@ def test_get_entity_spans_multiple_separate_entities(mock_model_and_tokenizer):
     mock_tokenizer._convert_id_to_token.side_effect = mock_convert_id_to_token
     mock_tokenizer.convert_tokens_to_string.side_effect = lambda x: x[0]
 
-    entities = masker._get_entity_spans("John is at Microsoft")
+    entities = redactor._get_entity_spans("John is at Microsoft")
 
     assert len(entities) == 2
     assert entities[0]["label"] == "PER"
@@ -387,20 +387,20 @@ def test_train_mode_toggle(mock_model_and_tokenizer):
     """Test train() method toggles model mode."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
 
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
     # Reset the mock to clear the eval() call from __init__
     mock_model.train.reset_mock()
 
     # Test enabling training mode
-    result = masker.train(True)
+    result = redactor.train(True)
 
     mock_model.train.assert_called_with(True)
-    assert result is masker  # Returns self
+    assert result is redactor  # Returns self
 
     # Test disabling training mode (back to eval)
     mock_model.train.reset_mock()
-    masker.train(False)
+    redactor.train(False)
 
     mock_model.train.assert_called_with(False)
 
@@ -408,9 +408,9 @@ def test_train_mode_toggle(mock_model_and_tokenizer):
 def test_forward_empty_text(mock_model_and_tokenizer):
     """Test forward with empty text."""
     mock_tokenizer, mock_model, _, _ = mock_model_and_tokenizer
-    masker = BERTNERMasker()
+    redactor = BERTNERRedactor()
 
-    masker._get_entity_spans = MagicMock(return_value=[])
+    redactor._get_entity_spans = MagicMock(return_value=[])
 
-    result = masker("")
+    result = redactor("")
     assert result == ""

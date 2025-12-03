@@ -17,9 +17,9 @@ def test_detection_pipeline_with_regex():
     pipeline = DetectionPipeline(detector, store=store)
 
     text = "Contact test@example.com"
-    masked = pipeline(text)
-    assert "[REDACTED_1]" in masked
-    assert "test@example.com" not in masked
+    redacted = pipeline(text)
+    assert "[REDACTED_1]" in redacted
+    assert "test@example.com" not in redacted
     assert store.mappings["[REDACTED_1]"] == "test@example.com"
 
 
@@ -109,12 +109,12 @@ def test_hybrid_detection_pipeline(mock_console_class, mock_is_package):
 
         # Test with text containing both email and person
         text = "John's email is john@example.com"
-        masked = pipeline(text)
+        redacted = pipeline(text)
 
-        # Both should be masked
-        assert "[REDACTED_1]" in masked  # John
-        assert "[REDACTED_2]" in masked  # email
-        assert "john@example.com" not in masked
+        # Both should be redacted
+        assert "[REDACTED_1]" in redacted  # John
+        assert "[REDACTED_2]" in redacted  # email
+        assert "john@example.com" not in redacted
 
         # Verify store
         assert len(store.mappings) == 2
@@ -122,20 +122,20 @@ def test_hybrid_detection_pipeline(mock_console_class, mock_is_package):
         assert "john@example.com" in store.mappings.values()
 
 
-def test_pipeline_with_custom_mask_format():
-    """Test pipeline with custom mask format."""
+def test_pipeline_with_custom_redaction_format():
+    """Test pipeline with custom redaction format."""
     patterns = {"EMAIL": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"}
     detector = RegexDetector(patterns)
     store = TokenStore()
 
-    # Custom mask format
+    # Custom redaction format
     pipeline = DetectionPipeline(
-        detector, store=store, mask_format="[MASKED_{counter}]"
+        detector, store=store, redaction_format="[MASKED_{counter}]"
     )
 
     text = "Contact test@example.com"
-    masked = pipeline(text)
+    redacted = pipeline(text)
 
-    assert "[MASKED_1]" in masked
+    assert "[MASKED_1]" in redacted
     assert store.mappings["[MASKED_1]"] == "test@example.com"
-    assert store.unmask(masked) == text
+    assert store.reveal(redacted) == text

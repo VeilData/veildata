@@ -1,11 +1,11 @@
 from veildata.core import Module
-from veildata.maskers import RegexMasker
+from veildata.redactors import RegexRedactor
 from veildata.revealers import TokenStore
 from veildata.transforms import Compose
 
 __all__ = [
     "Module",
     "Compose",
-    "RegexMasker",
+    "RegexRedactor",
     "TokenStore",
 ]

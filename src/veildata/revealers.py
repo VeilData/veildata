@@ -10,7 +10,7 @@ class TokenStore:
     Example:
         store = TokenStore()
         store.record("[REDACTED_1]", "john.doe@example.com")
-        text = store.unmask("Contact [REDACTED_1]")
+        text = store.reveal("Contact [REDACTED_1]")
     """
 
     def __init__(self) -> None:
@@ -24,7 +24,7 @@ class TokenStore:
         """Add multiple mappings at once."""
         self._mapping.update(mappings)
 
-    def unmask(self, text: str) -> str:
+    def reveal(self, text: str) -> str:
         """Replace all stored tokens with their original values in text."""
         for token, original in self._mapping.items():
             text = text.replace(token, original)

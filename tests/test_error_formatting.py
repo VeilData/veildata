@@ -29,8 +29,8 @@ def test_print_error_structure():
     assert arg.border_style == "red"
 
 
-@patch("veildata.engine.build_masker")
-def test_cli_config_missing_error(mock_build_masker):
+@patch("veildata.engine.build_redactor")
+def test_cli_config_missing_error(mock_build_redactor):
     """Test that CLI catches ConfigMissingError and prints formatted error."""
     from typer.testing import CliRunner
 
@@ -40,11 +40,11 @@ def test_cli_config_missing_error(mock_build_masker):
     runner = CliRunner()
 
     # Simulate ConfigMissingError
-    mock_build_masker.side_effect = ConfigMissingError("Config file not found")
+    mock_build_redactor.side_effect = ConfigMissingError("Config file not found")
 
     # We need to patch the console object in cli.py to verify print_error calls
     with patch("veildata.cli.console") as mock_console:
-        result = runner.invoke(app, ["mask", "input.txt", "--config", "missing.yaml"])
+        result = runner.invoke(app, ["redact", "input.txt", "--config", "missing.yaml"])
 
         assert result.exit_code == 1
 
@@ -56,8 +56,8 @@ def test_cli_config_missing_error(mock_build_masker):
         assert "Configuration Error" in args[0].title
 
 
-@patch("veildata.engine.build_masker")
-def test_cli_os_error(mock_build_masker):
+@patch("veildata.engine.build_redactor")
+def test_cli_os_error(mock_build_redactor):
     """Test that CLI catches OSError (model download declined) and prints formatted error."""
     from typer.testing import CliRunner
 
@@ -66,10 +66,10 @@ def test_cli_os_error(mock_build_masker):
     runner = CliRunner()
 
     # Simulate OSError
-    mock_build_masker.side_effect = OSError("Model download declined")
+    mock_build_redactor.side_effect = OSError("Model download declined")
 
     with patch("veildata.cli.console") as mock_console:
-        result = runner.invoke(app, ["mask", "input.txt"])
+        result = runner.invoke(app, ["redact", "input.txt"])
 
         assert result.exit_code == 1
 
