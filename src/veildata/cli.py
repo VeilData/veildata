@@ -18,15 +18,15 @@ from veildata.diagnostics import (
 )
 from veildata.engine import list_engines
 
-app = typer.Typer(help="VeilData — configurable PII masking and unmasking CLI")
+app = typer.Typer(help="VeilData — configurable PII redaction and revealing CLI")
 console = Console()
 
 
-@app.command("mask", help="Redact sensitive data from a file or stdin.")
-def mask(
+@app.command("redact", help="Redact sensitive data from a file or stdin.")
+def redact(
     input: str = typer.Argument(..., help="Input text or path to file"),
     output: Optional[str] = typer.Option(
-        None, "--output", "-o", help="Write masked text to this file"
+        None, "--output", "-o", help="Write redacted text to this file"
     ),
     config_path: Optional[str] = typer.Option(
         None, "--config", "-c", help="Path to YAML/JSON config file"
@@ -35,10 +35,10 @@ def mask(
         "regex",
         "--method",
         "-m",
-        help="Masking engine: regex | ner_spacy | ner_bert | all",
+        help="Redaction engine: regex | ner_spacy | ner_bert | all",
     ),
     dry_run: bool = typer.Option(
-        False, "--dry-run", help="Show what would be masked without replacing text"
+        False, "--dry-run", help="Show what would be redacted without replacing text"
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed logs"),
     store_path: Optional[str] = typer.Option(
@@ -66,10 +66,10 @@ def mask(
 ):
     from pathlib import Path
 
-    from veildata.engine import build_masker
+    from veildata.engine import build_redactor
     from veildata.utils import Timer
 
-    """Mask PII in text or files using a configurable engine."""
+    """Redact PII in text or files using a configurable engine."""
 
     # Check for existing files
     if not force:
@@ -174,7 +174,7 @@ def mask(
         load_timer.start()
 
     try:
-        masker, store = build_masker(
+        redactor, store = build_redactor(
             method,
             detect_mode=detect_mode,
             config_path=config_path,
@@ -210,26 +210,26 @@ def mask(
     except FileNotFoundError:
         text = input  # treat as raw text input
 
-    # Handle explain mode - output JSON instead of masking
+    # Handle explain mode - output JSON instead of redacting
     if explain:
         import json
 
-        # For explain mode, we need a DetectionPipeline with the masker
-        if hasattr(masker, "detector"):
+        # For explain mode, we need a DetectionPipeline with the redactor
+        if hasattr(redactor, "detector"):
             # It's already a DetectionPipeline
-            explanation = masker.explain(text)
-        elif hasattr(masker, "modules"):
+            explanation = redactor.explain(text)
+        elif hasattr(redactor, "modules"):
             # It's a Compose - not ideal for explain mode
             console.print(
                 "[yellow]Warning: --explain works best with single detector modes (regex, spacy, bert)[/]"
             )
             # Try to extract first module if it's a pipeline
-            first_module = masker.modules[0] if masker.modules else None
+            first_module = redactor.modules[0] if redactor.modules else None
             if hasattr(first_module, "explain"):
                 explanation = first_module.explain(text)
             else:
                 console.print(
-                    "[red]Error: Cannot explain with this masking configuration[/]"
+                    "[red]Error: Cannot explain with this redaction configuration[/]"
                 )
                 raise typer.Exit(code=1)
         else:
@@ -252,7 +252,7 @@ def mask(
     if show_time:
         process_timer.start()
 
-    masked = masker(text)
+    redacted = redactor(text)
 
     if show_time:
         process_timer.stop()
@@ -260,20 +260,20 @@ def mask(
     if not dry_run:
         if output:
             with open(output, "w") as f:
-                f.write(masked)
+                f.write(redacted)
             if verbose:
-                console.print(f"✅ Masked output written to {output}")
+                console.print(f"✅ Redacted output written to {output}")
         else:
-            console.print(masked)
+            console.print(redacted)
 
         if store_path:
             store.save(store_path)
             if verbose:
                 console.print(f"🧠 TokenStore saved to {store_path}")
     elif preview:
-        console.print(Panel.fit(masked, title="[bold cyan]Preview[/]"))
+        console.print(Panel.fit(redacted, title="[bold cyan]Preview[/]"))
     else:
-        console.print(masked)
+        console.print(redacted)
         console.print("\n(Dry run — no file written.)")
 
     # Display timing information if requested
@@ -286,9 +286,9 @@ def mask(
         )
 
 
-@app.command("unmask", help="Reverse masking using stored token mappings.")
-def unmask(
-    input: str = typer.Argument(..., help="Masked text or file path"),
+@app.command("reveal", help="Reverse redaction using stored token mappings.")
+def reveal(
+    input: str = typer.Argument(..., help="Redacted text or file path"),
     store_path: str = typer.Option(
         ..., "--store", "-s", help="Path to stored TokenStore mapping"
     ),
@@ -296,10 +296,10 @@ def unmask(
         False, "--time", help="Show timing information for the operation"
     ),
 ):
-    from veildata.engine import build_unmasker
+    from veildata.engine import build_revealer
     from veildata.utils import Timer
 
-    """Unmask text using a stored TokenStore."""
+    """Reveal text using a stored TokenStore."""
 
     # Initialize timing if requested
     load_timer = Timer() if show_time else None
@@ -308,7 +308,7 @@ def unmask(
     if show_time:
         load_timer.start()
 
-    unmasker = build_unmasker(store_path)
+    revealer = build_revealer(store_path)
 
     if show_time:
         load_timer.stop()
@@ -323,7 +323,7 @@ def unmask(
     if show_time:
         process_timer.start()
 
-    result = unmasker(text)
+    result = revealer(text)
 
     if show_time:
         process_timer.stop()
@@ -343,7 +343,7 @@ def unmask(
 @app.command("benchmark", help="Run performance benchmarks.")
 def benchmark(
     method: str = typer.Option(
-        "regex", "--method", "-m", help="Masking engine to benchmark"
+        "regex", "--method", "-m", help="Redaction engine to benchmark"
     ),
     iterations: int = typer.Option(
         100, "--iterations", "-n", help="Number of iterations"
@@ -352,12 +352,12 @@ def benchmark(
         "medium", "--size", "-s", help="Input size: small | medium | large"
     ),
 ):
-    """Measure performance of masking engines."""
+    """Measure performance of redaction engines."""
     import json
     import statistics
     from pathlib import Path
 
-    from veildata.engine import build_masker
+    from veildata.engine import build_redactor
     from veildata.utils import Timer
 
     console.print(
@@ -378,20 +378,20 @@ def benchmark(
 
     # Measure load time
     with Timer() as load_timer:
-        masker, _ = build_masker(method, verbose=False, config_dict=config)
+        redactor, _ = build_redactor(method, verbose=False, config_dict=config)
 
     load_time_ms = load_timer.elapsed * 1000
     console.print(f"Model Load Time: [green]{load_time_ms:.2f} ms[/]")
 
     # Warmup
-    masker(sample_text)
+    redactor(sample_text)
 
     # Measure execution time
     times = []
     with console.status("[bold green]Benchmarking..."):
         for _ in range(iterations):
             with Timer() as t:
-                masker(sample_text)
+                redactor(sample_text)
             times.append(t.elapsed * 1000)
 
     avg_time = statistics.mean(times)
@@ -433,13 +433,13 @@ def benchmark(
     console.print(f"\n[dim]Results saved to {output_file}[/]")
 
 
-@app.command("inspect", help="Show available masking engines and config paths.")
+@app.command("inspect", help="Show available redaction engines and config paths.")
 def inspect():
-    """Show available masking engines."""
+    """Show available redaction engines."""
 
     engines = list_engines()
 
-    table = Table(title="Available Masking Engines")
+    table = Table(title="Available Redaction Engines")
     table.add_column("Engine", style="cyan", no_wrap=True)
     table.add_column("Description", style="white")
     for name, desc in engines:

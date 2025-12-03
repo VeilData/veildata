@@ -5,16 +5,16 @@ from veildata.pipeline import DetectionPipeline
 from veildata.revealers import TokenStore
 
 
-def test_pipeline_masking():
+def test_pipeline_redaction():
     # Mock detector
     detector = MagicMock()
     detector.detect.return_value = [EntitySpan(7, 11, "PERSON", 1.0, "mock", "John")]
 
     pipeline = DetectionPipeline(detector)
     text = "Hello, John!"
-    masked = pipeline(text)
+    redacted = pipeline(text)
 
-    assert masked == "Hello, [REDACTED_1]!"
+    assert redacted == "Hello, [REDACTED_1]!"
     assert pipeline.counter == 1
 
 
@@ -25,9 +25,9 @@ def test_pipeline_with_store():
     store = TokenStore()
     pipeline = DetectionPipeline(detector, store=store)
     text = "Hello, John!"
-    masked = pipeline(text)
+    redacted = pipeline(text)
 
-    assert masked == "Hello, [REDACTED_1]!"
+    assert redacted == "Hello, [REDACTED_1]!"
     assert store.mappings["[REDACTED_1]"] == "John"
 
 
@@ -40,9 +40,9 @@ def test_pipeline_multiple_spans():
 
     pipeline = DetectionPipeline(detector)
     text = "1234, 5678"
-    masked = pipeline(text)
+    redacted = pipeline(text)
 
-    assert masked == "[REDACTED_1], [REDACTED_2]"
+    assert redacted == "[REDACTED_1], [REDACTED_2]"
 
 
 def test_pipeline_overlapping_spans_filtered():
@@ -55,10 +55,10 @@ def test_pipeline_overlapping_spans_filtered():
 
     pipeline = DetectionPipeline(detector)
     text = "123456"
-    masked = pipeline(text)
+    redacted = pipeline(text)
 
     # Should keep first one (greedy)
-    assert masked == "[REDACTED_1]6"
+    assert redacted == "[REDACTED_1]6"
 
 
 def test_pipeline_explain():

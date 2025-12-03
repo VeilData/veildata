@@ -7,19 +7,19 @@ from veildata.revealers import TokenStore
 
 class DetectionPipeline(Module):
     """
-    Pipeline that uses a Detector to find entities and masks them.
+    Pipeline that uses a Detector to find entities and redacts them.
     """
 
     def __init__(
         self,
         detector: Detector,
         store: Optional[TokenStore] = None,
-        mask_format: str = "[REDACTED_{counter}]",
+        redaction_format: str = "[REDACTED_{counter}]",
     ):
         super().__init__()
         self.detector = detector
         self.store = store
-        self.mask_format = mask_format
+        self.redaction_format = redaction_format
         self.counter = 0
 
     def explain(self, text: str) -> Dict:
@@ -83,9 +83,9 @@ class DetectionPipeline(Module):
             # Append text before the span
             parts.append(text[current_idx : span.start])
 
-            # Generate mask token
+            # Generate redaction token
             self.counter += 1
-            token = self.mask_format.format(counter=self.counter)
+            token = self.redaction_format.format(counter=self.counter)
 
             # Record in store
             if self.store:

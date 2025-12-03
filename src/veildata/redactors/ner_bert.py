@@ -5,20 +5,20 @@ from veildata.core import Module
 from veildata.revealers import TokenStore
 
 
-class BERTNERMasker(Module):
-    """Mask named entities in text using a fine-tuned BERT NER model."""
+class BERTNERRedactor(Module):
+    """Redact named entities in text using a fine-tuned BERT NER model."""
 
     def __init__(
         self,
         model_name: str = "dslim/bert-base-NER",
-        mask_token: str = "[REDACTED_{counter}]",
+        redaction_token: str = "[REDACTED_{counter}]",
         store: TokenStore | None = None,
         device: str | None = None,
         use_fp16: bool = False,
     ) -> None:
         super().__init__()
         self.model_name = model_name
-        self.mask_token = mask_token
+        self.redaction_token = redaction_token
         self.store = store
         self.counter = 0
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -123,9 +123,9 @@ class BERTNERMasker(Module):
             if entity_text.strip() != entity["text"].strip():
                 continue
 
-            # Generate mask token and record in store
+            # Generate redaction token and record in store
             self.counter += 1
-            mask = self.mask_token.format(counter=self.counter)
+            mask = self.redaction_token.format(counter=self.counter)
             if self.store:
                 self.store.record(mask, entity_text)
 
@@ -134,7 +134,7 @@ class BERTNERMasker(Module):
 
         return "".join(result)
 
-    def train(self, mode: bool = True) -> "BERTNERMasker":
+    def train(self, mode: bool = True) -> "BERTNERRedactor":
         """Toggle train/eval mode on BERT model."""
         super().train(mode)
         self.model.train(mode)

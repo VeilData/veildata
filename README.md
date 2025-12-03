@@ -1,5 +1,5 @@
 # 🕶️ VeilData
-**A lightweight framework for masking and unmasking Personally Identifiable Information (PII).**
+**A lightweight framework for redacting and revealing Personally Identifiable Information (PII).**
 
 [![CI](https://github.com/VeilData/veildata/actions/workflows/ci.yml/badge.svg)](https://github.com/VeilData/veildata/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/VeilData/veildata/branch/main/graph/badge.svg)](https://codecov.io/gh/VeilData/veildata)
@@ -27,7 +27,7 @@ pip install veildata
 ```shell
 docker build -t veildata .
 alias veildata="docker run --rm -v \$(pwd):/app veildata"
-veildata mask data/input.csv --out data/redacted.csv
+veildata redact data/input.csv --out data/redacted.csv
 ```
 
 **Running in Docker**
@@ -48,7 +48,7 @@ uv sync
 ### Quickstart Guide
 Mark sensitive data
 ```shell
-veildata mask input.txt
+veildata redact input.txt
 ```
 Example config.yaml
 ```yaml
@@ -56,99 +56,99 @@ patterns:
   EMAIL: "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"
 ```
 
-Reveal previously mask data
+Reveal previously redact data
 ```shell
-veildata unmask masked.txt
+veildata reveal redacted.txt
 ```
 ** Using Docker**
 ```shell
-docker run --rm -v $(pwd):/app veildata mask input.txt --out masked.txt
+docker run --rm -v $(pwd):/app veildata redact input.txt --out redacted.txt
 ```
 
 ### File Input/Output (CLI)
-Mask a file, save the output, and keep a token store for reversibility:
+Redact a file, save the output, and keep a token store for reversibility:
 ```shell
-veildata mask input.txt --output masked.txt --store store.json
+veildata redact input.txt --output redacted.txt --store store.json
 ```
 
-Unmask the file using the stored tokens:
+Reveal the file using the stored tokens:
 ```shell
-veildata unmask masked.txt --store store.json
+veildata reveal redacted.txt --store store.json
 ```
 
 
 ## Python SDK Examples
-Regex-based Masking
+Regex-based Redaction
 ```python
-from veildata import Compose, RegexMasker, TokenStore
+from veildata import Compose, RegexRedactor, TokenStore
 
-# Create a shared TokenStore for reversible masking
+# Create a shared TokenStore for reversible Redaction
 store = TokenStore()
 
-# Define your masking pipeline with the shared store
-masker = Compose([
-    RegexMasker(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", store=store),  # email
-    RegexMasker(r"\b\d{3}-\d{3}-\d{4}\b", store=store),                           # phone
+# Define your Redaction pipeline with the shared store
+redactor = Compose([
+    RegexRedactor(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", store=store),  # email
+    RegexRedactor(r"\b\d{3}-\d{3}-\d{4}\b", store=store),                           # phone
 ])
 
 text = "Contact John at john.doe@example.com or call 123-456-7890."
 
-# --- Mask the data ---
-masked_text = masker(text)
-print(masked_text)
+# --- redact the data ---
+redacted_text = redactor(text)
+print(redacted_text)
 # -> Contact John at [REDACTED_1] or call [REDACTED_2].
 
-# --- Unmask it later ---
-unmasked_text = store.unmask(masked_text)
-print(unmasked_text)
+# --- reveal it later ---
+revealed_text = store.reveal(redacted_text)
+print(revealed_text)
 # -> Contact John at john.doe@example.com or call 123-456-7890.
 ```
 
 spaCy Named Entity Recognition
 ```python
 # Requires `pip install veildata[spacy]`
-from veildata.maskers.ner_spacy import SpacyNERMasker
+from veildata.redactors.ner_spacy import SpacyNERRedactor
 from veildata import TokenStore
 
-# Shared token store for reversible unmasking
+# Shared token store for reversible revealing
 store = TokenStore()
 
-masker = SpacyNERMasker(
+redactor = SpacyNERRedactor(
     entities=["PERSON", "ORG"],
     store=store
 )
 
 text = "Apple was founded by Steve Jobs in Cupertino."
-masked = masker(text)
-print(masked)  # -> [REDACTED_1] was founded by [REDACTED_2] in Cupertino.
+redacted = redactor(text)
+print(redacted)  # -> [REDACTED_1] was founded by [REDACTED_2] in Cupertino.
 ```
 
-#### BERT NER Masking
+#### BERT NER Redaction
 ```python
 # Requires `pip install veildata[bert]`
-from veildata.maskers.ner_bert import BERTNERMasker
+from veildata.redactors.ner_bert import BERTNERRedactor
 from veildata import TokenStore
 
 store = TokenStore()
-masker = BERTNERMasker(
+redactor = BERTNERRedactor(
     model_name="dslim/bert-base-NER",
     store=store
 )
 
 text = "John Smith works at Google in New York."
-masked = masker(text)
-print(masked)  # -> [REDACTED_1] works at [REDACTED_2] in [REDACTED_3].
+redacted = redactor(text)
+print(redacted)  # -> [REDACTED_1] works at [REDACTED_2] in [REDACTED_3].
 ```
 
 #### File Input/Output
 ```python
 from pathlib import Path
-from veildata import Compose, RegexMasker, TokenStore
+from veildata import Compose, RegexRedactor, TokenStore
 
-# Setup masker
+# Setup redactor
 store = TokenStore()
-masker = Compose([
-    RegexMasker(r"\b\d{3}-\d{3}-\d{4}\b", store=store)
+redactor = Compose([
+    RegexRedactor(r"\b\d{3}-\d{3}-\d{4}\b", store=store)
 ])
 
 # Read from file
@@ -156,13 +156,13 @@ input_path = Path("input.txt")
 if input_path.exists():
     text = input_path.read_text()
     
-    # Mask
-    masked_text = masker(text)
+    # redact
+    redacted_text = redactor(text)
     
     # Write to file
-    Path("masked.txt").write_text(masked_text)
+    Path("redacted.txt").write_text(redacted_text)
     
-    # Save store for later unmasking
+    # Save store for later revealing
     store.save("store.json")
 ```
 
@@ -221,4 +221,5 @@ options:
 ### 🛠️ Continuous Integration
 - CI: .github/workflows/ci.yml runs linting, formatting, build, and tests on every push or PR.
 - Publish: .github/workflows/publish.yml auto-publishes to PyPI when a new v* tag or release is created.
+
 

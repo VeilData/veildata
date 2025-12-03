@@ -9,20 +9,20 @@ except ImportError as e:
     ) from e
 
 
-class SpacyNERMasker(Module):
-    """Mask named entities in text using a spaCy model, with optional reversible tracking."""
+class SpacyNERRedactor(Module):
+    """Redact named entities in text using a spaCy model, with optional reversible tracking."""
 
     def __init__(
         self,
         model: str = "en_core_web_sm",
         entities: list[str] | None = None,
-        mask_token: str = "[REDACTED_{counter}]",
+        redaction_token: str = "[REDACTED_{counter}]",
         store: TokenStore | None = None,
     ) -> None:
         super().__init__()
         self.model_name = model
         self.entities = set(entities or ["PERSON", "ORG", "GPE", "EMAIL", "PHONE"])
-        self.mask_token = mask_token
+        self.redaction_token = redaction_token
         self.store = store
         self._load_model()
         self.counter = 0
@@ -42,7 +42,7 @@ class SpacyNERMasker(Module):
         for ent in reversed(doc.ents):
             if ent.label_ in self.entities:
                 self.counter += 1
-                token = self.mask_token.format(counter=self.counter)
+                token = self.redaction_token.format(counter=self.counter)
                 if self.store:
                     self.store.record(token, ent.text)
                 redacted = redacted[: ent.start_char] + token + redacted[ent.end_char :]

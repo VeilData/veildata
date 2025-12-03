@@ -20,7 +20,7 @@ def test_explain_mode_regex(tmp_path):
     input_text = "Contact me at test@example.com for details."
     result = run_cli(
         [
-            "mask",
+            "redact",
             input_text,
             "--method",
             "regex",
@@ -59,7 +59,7 @@ def test_explain_mode_output_file(tmp_path):
 
     result = run_cli(
         [
-            "mask",
+            "redact",
             input_text,
             "--method",
             "regex",
@@ -93,7 +93,7 @@ def test_explain_mode_no_detections(tmp_path):
     input_text = "This text has no PII."
     result = run_cli(
         [
-            "mask",
+            "redact",
             input_text,
             "--method",
             "regex",

@@ -18,9 +18,9 @@ def run_wizard():
         )
     )
 
-    # 1. Choose Masking Engine
+    # 1. Choose Redaction Engine
     engine = Prompt.ask(
-        "Which masking engine would you like to use by default?",
+        "Which redaction engine would you like to use by default?",
         choices=["regex", "spacy", "hybrid"],
         default="regex",
     )

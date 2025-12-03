@@ -20,7 +20,7 @@ def test_overwrite_protection():
         result = runner.invoke(
             app,
             [
-                "mask",
+                "redact",
                 "test input",
                 "-o",
                 "existing_output.txt",
@@ -35,7 +35,7 @@ def test_overwrite_protection():
         result = runner.invoke(
             app,
             [
-                "mask",
+                "redact",
                 "test input",
                 "--store",
                 "existing_store.json",
@@ -50,7 +50,7 @@ def test_overwrite_protection():
         result = runner.invoke(
             app,
             [
-                "mask",
+                "redact",
                 "test input",
                 "-o",
                 "existing_output.txt",
@@ -66,7 +66,7 @@ def test_overwrite_protection():
         result = runner.invoke(
             app,
             [
-                "mask",
+                "redact",
                 "test input",
                 "--store",
                 "existing_store.json",
@@ -81,7 +81,7 @@ def test_overwrite_protection():
         result = runner.invoke(
             app,
             [
-                "mask",
+                "redact",
                 "test input",
                 "--store",
                 "existing_store.json",
