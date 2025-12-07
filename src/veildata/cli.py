@@ -63,6 +63,15 @@ def redact(
     show_time: bool = typer.Option(
         False, "--time", help="Show timing information for the operation"
     ),
+    stream: bool = typer.Option(
+        False, "--stream", "-s", help="Enable streaming mode for large files"
+    ),
+    chunk_size: int = typer.Option(
+        4096, "--chunk-size", help="Chunk size for streaming mode (bytes)"
+    ),
+    overlap: int = typer.Option(
+        512, "--overlap", help="Overlap size for cross-chunk entity detection"
+    ),
 ):
     from pathlib import Path
 
@@ -246,6 +255,89 @@ def redact(
                 console.print(f"✅ Explanation written to {output}")
         else:
             console.print(json_output)
+        return
+
+    # Handle streaming mode
+    if stream:
+        from veildata.streaming_buffer import StreamingRedactionBuffer
+
+        # Streaming mode requires file input (not raw text)
+        try:
+            input_file = open(input, "r")
+        except FileNotFoundError:
+            console.print(
+                "[red]Error: Streaming mode requires a valid file path, not raw text.[/]"
+            )
+            raise typer.Exit(code=1)
+
+        # Create streaming buffer
+        buffer = StreamingRedactionBuffer(redactor, overlap_size=overlap, store=store)
+
+        if show_time:
+            process_timer.start()
+
+        # Open output file if specified
+        output_file = open(output, "w") if output else None
+
+        try:
+            # Process file in chunks
+            chunks_processed = 0
+            while True:
+                chunk = input_file.read(chunk_size)
+                if not chunk:
+                    break
+
+                # Process chunk
+                redacted_chunk = buffer.add_chunk(chunk)
+
+                # Write output
+                if redacted_chunk:
+                    if output_file:
+                        output_file.write(redacted_chunk)
+                    elif not dry_run:
+                        console.print(redacted_chunk, end="")
+
+                chunks_processed += 1
+
+            # Finalize buffer
+            final_chunk = buffer.finalize()
+            if final_chunk:
+                if output_file:
+                    output_file.write(final_chunk)
+                elif not dry_run:
+                    console.print(final_chunk, end="")
+
+        finally:
+            input_file.close()
+            if output_file:
+                output_file.close()
+
+        if show_time:
+            process_timer.stop()
+
+        # Save store if requested
+        if store_path and not dry_run:
+            store.save(store_path)
+            if verbose:
+                console.print(f"\n🧠 TokenStore saved to {store_path}")
+
+        # Show stats
+        if verbose:
+            stats = buffer.get_stats()
+            console.print(f"\n📊 Processed {chunks_processed} chunks")
+            console.print(f"  Input: {stats['total_input_chars']} chars")
+            console.print(f"  Output: {stats['total_output_chars']} chars")
+            console.print(f"  Entities redacted: {stats['total_entities_redacted']}")
+
+        # Display timing
+        if show_time:
+            load_ms = load_timer.elapsed * 1000 if load_timer else 0
+            process_ms = process_timer.elapsed * 1000
+            total_ms = load_ms + process_ms
+            console.print(
+                f"\n⏱️  [dim]Load: {load_ms:.2f}ms | Processing: {process_ms:.2f}ms | Total: {total_ms:.2f}ms[/]"
+            )
+
         return
 
     # Measure processing time

@@ -24,7 +24,7 @@ class ChunkMetadata:
 
 
 class StreamingRedactionBuffer:
-    """
+    r"""
     Buffer for streaming redaction with cross-chunk entity detection.
 
     This class maintains a sliding window to ensure entities that span chunk
