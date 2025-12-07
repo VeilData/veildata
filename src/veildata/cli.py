@@ -72,6 +72,9 @@ def redact(
     overlap: int = typer.Option(
         512, "--overlap", help="Overlap size for cross-chunk entity detection"
     ),
+    is_json: bool = typer.Option(
+        False, "--json", help="Treat input as JSON and redact values recursively"
+    ),
 ):
     from pathlib import Path
 
@@ -344,7 +347,21 @@ def redact(
     if show_time:
         process_timer.start()
 
-    redacted = redactor(text)
+    if is_json:
+        import json
+
+        from veildata.utils.traversal import traverse_and_redact
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            print_error(console, "JSON Error", str(e))
+            raise typer.Exit(code=1)
+
+        result_data = traverse_and_redact(data, redactor)
+        redacted = json.dumps(result_data, indent=2)
+    else:
+        redacted = redactor(text)
 
     if show_time:
         process_timer.stop()
