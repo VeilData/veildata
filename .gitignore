@@ -40,3 +40,6 @@ coverage.xml
 
 # Benchmark results
 .bench/
+
+# Sphinx
+docs/_build
