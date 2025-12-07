@@ -1,10 +1,12 @@
 import subprocess
 import sys
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
 from veildata.cli import app
+from veildata.exceptions import ConfigMissingError
 
 runner = CliRunner()
 
@@ -219,7 +221,6 @@ def test_cli_benchmark(tmp_path):
 
     # Verify JSON was created
     import json
-    from pathlib import Path
 
     bench_file = Path(".bench/last_run.json")
     assert bench_file.exists(), "Benchmark JSON file was not created"
@@ -323,3 +324,129 @@ def test_cli_reveal_with_time(tmp_path):
     assert "Load:" in reveal_result.stdout
     assert "Processing:" in reveal_result.stdout
     assert "Total:" in reveal_result.stdout
+
+
+# ============================================================================
+# Merged In-Process Coverage Tests
+# ============================================================================
+
+
+def test_basic_redaction_in_process(tmp_path):
+    """Test basic redaction in-process for coverage."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+    result = runner.invoke(
+        app, ["redact", "this is a test", "--config", str(config_file)]
+    )
+    assert result.exit_code == 0
+    assert "[REDACTED_1]" in result.stdout
+
+
+def test_stream_basic_in_process(tmp_path):
+    """Test streaming mode in-process."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+    input_file = tmp_path / "input.txt"
+    input_file.write_text("test test test")
+    output_file = tmp_path / "output.txt"
+
+    result = runner.invoke(
+        app,
+        [
+            "redact",
+            str(input_file),
+            "--stream",
+            "--output",
+            str(output_file),
+            "--config",
+            str(config_file),
+        ],
+    )
+    assert result.exit_code == 0
+    assert output_file.exists()
+
+
+def test_redact_errors_in_process(tmp_path):
+    """Test redaction errors in-process."""
+    # Missing config handled by load_config exception
+    result = runner.invoke(app, ["redact", "test", "--config", "missing.yaml"])
+    assert result.exit_code == 1
+
+    # Existing file no overwrite
+    out = tmp_path / "exists.txt"
+    out.write_text("exists")
+    config = tmp_path / "conf.yaml"
+    config.write_text('patterns:\n  A: "a"')
+    result = runner.invoke(
+        app, ["redact", "a", "--output", str(out), "--config", str(config)]
+    )
+    assert result.exit_code == 1
+
+
+def test_redact_file_verbose_in_process(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('patterns:\n  TEST: "test"\n')
+    output_file = tmp_path / "output.txt"
+
+    result = runner.invoke(
+        app,
+        [
+            "redact",
+            "test data",
+            "--output",
+            str(output_file),
+            "--config",
+            str(config_file),
+            "--verbose",
+        ],
+    )
+    assert result.exit_code == 0
+    assert output_file.exists()
+    assert "written to" in result.stdout or "✅" in result.stdout
+
+
+def test_hybrid_defaults(tmp_path):
+    """Test hybrid mode falls back to default patterns if none provided."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        'method: "hybrid"\nml:\n  spacy:\n    enabled: true\n    model: "en_core_web_sm"\n'
+    )
+    with patch("veildata.engine.build_redactor") as mock_build:
+        mock_build.return_value = (MagicMock(), MagicMock())
+        result = runner.invoke(app, ["redact", "test", "--config", str(config_file)])
+        assert result.exit_code == 0
+        args, kwargs = mock_build.call_args
+        config_arg = kwargs.get("config_dict", {})
+        assert "patterns" in config_arg
+
+
+def test_regex_defaults_config(tmp_path):
+    """Test regex mode defaults if no patterns."""
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text('method: "regex"')
+
+    with patch("veildata.engine.build_redactor") as mock_build:
+        mock_build.return_value = (MagicMock(), MagicMock())
+        result = runner.invoke(app, ["redact", "test", "--config", str(config_file)])
+        assert result.exit_code == 0
+        args, kwargs = mock_build.call_args
+        config_arg = kwargs.get("config_dict", {})
+        assert "patterns" in config_arg
+
+
+@patch("veildata.engine.build_redactor")
+def test_build_redactor_error_handling(mock_build):
+    """Test catching ConfigMissingError during build."""
+    mock_build.side_effect = ConfigMissingError("Config error")
+    result = runner.invoke(app, ["redact", "test"])
+    assert result.exit_code == 1
+    assert "Configuration Error" in result.stdout
+
+
+@patch("veildata.engine.build_redactor")
+def test_build_redactor_os_error(mock_build):
+    """Test catching OSError (model download failure)."""
+    mock_build.side_effect = OSError("Download failed")
+    result = runner.invoke(app, ["redact", "test"])
+    assert result.exit_code == 1
+    assert "Model Error" in result.stdout
