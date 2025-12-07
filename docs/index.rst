@@ -10,6 +10,7 @@ VeilData Documentation
    streaming
    api
    cli
+   json_traversal
 
 VeilData is a powerful PII redaction library that supports multiple detection methods and streaming processing for large files.
 

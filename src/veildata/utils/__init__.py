@@ -1,6 +1,8 @@
 import time
 from typing import Optional
 
+from .traversal import traverse_and_redact as traverse_and_redact
+
 
 class Timer:
     """

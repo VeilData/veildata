@@ -44,6 +44,10 @@ all = [
     "transformers>=4.30.0",
     "pytest>=8.3.5",
 ]
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+]
 
 [project.scripts]
 veildata = "veildata.cli:main"
@@ -76,6 +80,8 @@ packages = { find = { where = ["src"] } }
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
 ]
 
 [tool.coverage.run]
