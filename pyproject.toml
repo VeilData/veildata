@@ -32,6 +32,7 @@ classifiers = [
 [project.optional-dependencies]
 spacy = [
   "spacy>=3.8.2",
+  "en-core-web-sm",
 ]
 bert = [
     "torch>=2.0.0",
