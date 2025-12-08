@@ -122,6 +122,7 @@ def redact(
     if no_ml:
         detect_mode = "rules"
 
+    from veildata.core.config import RedactionMethod
     from veildata.diagnostics import print_error
     from veildata.engine import load_config
     from veildata.exceptions import ConfigMissingError
@@ -133,8 +134,8 @@ def redact(
         # If method wasn't explicitly set via CLI and config has a method, use it
         # We detect CLI default by checking if it's "regex" (the default)
         # This is a heuristic - ideally typer would tell us if the value was defaulted
-        if method == "regex" and config.get("method"):
-            method = config["method"]
+        if method == "regex" and config.method != RedactionMethod.REGEX:
+            method = config.method.value
             if verbose:
                 console.print(f"[veildata] Using method '{method}' from config")
 
@@ -149,11 +150,12 @@ def redact(
         if method == "hybrid":
             # For hybrid mode, we need to use the detector-based approach
             # This requires patterns in the config
-            if not config.get("patterns") and not config.get("pattern"):
+            # config object has get_patterns helper
+            if not config.get_patterns():
                 # Add default patterns for hybrid mode
                 from veildata.defaults import DEFAULT_PATTERNS
 
-                config["patterns"] = DEFAULT_PATTERNS
+                config.patterns = DEFAULT_PATTERNS
             # Use regex method but set detect_mode to hybrid
             method = "regex"
             if detect_mode == "rules":  # Only override if not explicitly set
@@ -161,14 +163,10 @@ def redact(
 
         # Handle "regex" mode - if no patterns are provided, use defaults
         # This fixes the issue where wizard-generated config has no patterns
-        if (
-            method == "regex"
-            and not config.get("patterns")
-            and not config.get("pattern")
-        ):
+        if method == "regex" and not config.get_patterns():
             from veildata.defaults import DEFAULT_PATTERNS
 
-            config["patterns"] = DEFAULT_PATTERNS
+            config.patterns = DEFAULT_PATTERNS
     except ConfigMissingError as e:
         print_error(
             console,
@@ -192,7 +190,7 @@ def redact(
             config_path=config_path,
             ml_config_path=ml_config,
             verbose=verbose,
-            config_dict=config,
+            config=config,
         )
 
         if show_time:
@@ -481,13 +479,14 @@ def benchmark(
     }.get(size, "My email is test@example.com")
 
     # Prepare config with default patterns for benchmark
+    from veildata.core.config import VeilConfig
     from veildata.defaults import DEFAULT_PATTERNS
 
-    config = {"patterns": DEFAULT_PATTERNS}
+    config = VeilConfig(patterns=DEFAULT_PATTERNS)
 
     # Measure load time
     with Timer() as load_timer:
-        redactor, _ = build_redactor(method, verbose=False, config_dict=config)
+        redactor, _ = build_redactor(method, verbose=False, config=config)
 
     load_time_ms = load_timer.elapsed * 1000
     console.print(f"Model Load Time: [green]{load_time_ms:.2f} ms[/]")
