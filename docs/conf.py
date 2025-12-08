@@ -50,6 +50,9 @@ autodoc_default_options = {
     "show-inheritance": True,
 }
 
+# Mock imports for RTD
+autodoc_mock_imports = ["spacy", "torch", "transformers"]
+
 # Intersphinx mapping
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),

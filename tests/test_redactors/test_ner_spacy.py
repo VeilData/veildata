@@ -1,7 +1,23 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+import spacy
+
 from veildata.redactors.ner_spacy import SpacyNERRedactor
 from veildata.revealers import TokenStore
+
+
+@pytest.fixture(autouse=True)
+def ensure_spacy_model():
+    """Ensure the spaCy model is available for tests."""
+    model = "en_core_web_sm"
+    try:
+        spacy.load(model)
+    except OSError:
+        from spacy.cli import download
+
+        print(f"Downloading {model} for tests...")
+        download(model)
 
 
 def test_ner_spacy_init():
