@@ -2,16 +2,17 @@ import timeit
 
 import pytest
 
-from tests.benchmark.utils import (
+from veildata.detectors import RegexDetector
+from veildata.pipeline import DetectionPipeline
+from veildata.streaming_buffer import stream_redact
+from veildata.utils.traversal import traverse_and_redact
+
+from .utils import (
     generate_chunk_stream,
     generate_flat_json,
     generate_large_text,
     generate_nested_json,
 )
-from veildata.detectors import RegexDetector
-from veildata.pipeline import DetectionPipeline
-from veildata.streaming_buffer import stream_redact
-from veildata.utils.traversal import traverse_and_redact
 
 # Global results storage
 RESULTS = []
