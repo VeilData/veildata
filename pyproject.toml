@@ -12,7 +12,6 @@ dependencies = [
     "pre-commit",
     "black",
     "ruff",
-    "en-core-web-sm",
     "typer",
     "rich",
     "pytest>=8.4.2",
