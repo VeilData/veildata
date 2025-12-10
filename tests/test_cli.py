@@ -416,8 +416,9 @@ def test_hybrid_defaults(tmp_path):
         result = runner.invoke(app, ["redact", "test", "--config", str(config_file)])
         assert result.exit_code == 0
         args, kwargs = mock_build.call_args
-        config_arg = kwargs.get("config_dict", {})
-        assert "patterns" in config_arg
+        config_arg = kwargs.get("config")
+        assert config_arg is not None
+        assert config_arg.patterns is not None
 
 
 def test_regex_defaults_config(tmp_path):
@@ -430,8 +431,9 @@ def test_regex_defaults_config(tmp_path):
         result = runner.invoke(app, ["redact", "test", "--config", str(config_file)])
         assert result.exit_code == 0
         args, kwargs = mock_build.call_args
-        config_arg = kwargs.get("config_dict", {})
-        assert "patterns" in config_arg
+        config_arg = kwargs.get("config")
+        assert config_arg is not None
+        assert config_arg.patterns is not None
 
 
 @patch("veildata.engine.build_redactor")

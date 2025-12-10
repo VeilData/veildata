@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
+from veildata.core.config import VeilConfig
 from veildata.engine import (
     build_redactor,
     build_revealer,
@@ -22,10 +23,10 @@ def test_load_config_missing_file():
 def test_load_config_valid_file(tmp_path):
     """Test that load_config loads a valid config file."""
     config_file = tmp_path / "config.yaml"
-    config_file.write_text("key: value")
+    config_file.write_text("method: regex")
 
     config = load_config(str(config_file))
-    assert config == {"key": "value"}
+    assert config.method == "regex"
 
 
 def test_list_engines():
@@ -45,8 +46,8 @@ def test_list_available_redactors():
 
 
 def test_build_redactor_regex():
-    config = {"patterns": {"TEST": "test"}}
-    redactor, store = build_redactor(method="regex", config_dict=config)
+    config = VeilConfig(patterns={"TEST": "test"})
+    redactor, store = build_redactor(method="regex", config=config)
     assert hasattr(redactor, "detector")  # Should be a pipeline
     assert store is not None
 
@@ -54,12 +55,12 @@ def test_build_redactor_regex():
 @patch("veildata.engine.load_config")
 @patch("veildata.detectors.SpacyDetector")
 def test_build_redactor_spacy_ml(mock_spacy, mock_load_config):
-    config = {"patterns": {"dummy": "pattern"}}
+    config = VeilConfig(patterns={"dummy": "pattern"}, ml={"spacy": {"enabled": True}})
     # load_config is called for ml_config. Return spacy config.
-    mock_load_config.return_value = {"ml": {"spacy": {"enabled": True}}}
+    mock_load_config.return_value = VeilConfig(ml={"spacy": {"enabled": True}})
 
     redactor, store = build_redactor(
-        method="ner_spacy", detect_mode="ml", config_dict=config
+        method="ner_spacy", detect_mode="ml", config=config
     )
     assert hasattr(redactor, "detector")
     mock_spacy.assert_called()
@@ -68,13 +69,11 @@ def test_build_redactor_spacy_ml(mock_spacy, mock_load_config):
 @patch("veildata.engine.load_config")
 @patch("veildata.detectors.BertDetector")
 def test_build_redactor_bert_ml(mock_bert, mock_load_config):
-    config = {"patterns": {"dummy": "pattern"}}
+    config = VeilConfig(patterns={"dummy": "pattern"}, ml={"bert": {"enabled": True}})
     # load_config is called for ml_config. Return bert config.
-    mock_load_config.return_value = {"ml": {"bert": {"enabled": True}}}
+    mock_load_config.return_value = VeilConfig(ml={"bert": {"enabled": True}})
 
-    redactor, store = build_redactor(
-        method="ner_bert", detect_mode="ml", config_dict=config
-    )
+    redactor, store = build_redactor(method="ner_bert", detect_mode="ml", config=config)
     assert hasattr(redactor, "detector")
     mock_bert.assert_called()
 
