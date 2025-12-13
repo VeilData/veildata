@@ -1,0 +1,50 @@
+[
+    {
+        "id": "regex_basic_email",
+        "description": "Redact email using default rules",
+        "config": {
+            "method": "regex",
+            "patterns": {
+                "EMAIL": "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"
+            }
+        },
+        "input": "Contact me at test@example.com",
+        "expected_redacted": "Contact me at [EMAIL_1]"
+    },
+    {
+        "id": "regex_custom_secret",
+        "description": "Redact custom secret pattern",
+        "config": {
+            "method": "regex",
+            "patterns": {
+                "SECRET": "SECRET-\\d+"
+            }
+        },
+        "input": "This is my SECRET-12345 key.",
+        "expected_redacted": "This is my [SECRET_1] key."
+    },
+    {
+        "id": "json_traversal_email",
+        "description": "Redact email inside JSON value",
+        "config": {
+            "method": "regex",
+            "patterns": {
+                "EMAIL": "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b"
+            }
+        },
+        "input": "{\"user\": {\"email\": \"bob@example.com\", \"id\": 1}}",
+        "expected_redacted": "{\"user\": {\"email\": \"[EMAIL_1]\", \"id\": 1}}"
+    },
+    {
+        "id": "json_multiline_log",
+        "description": "Redact PII in a multiline log mixed with JSON",
+        "config": {
+            "method": "regex",
+            "patterns": {
+                "IP": "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b"
+            }
+        },
+        "input": "Info: Connection from 192.168.1.1\nPayload: {\"ip\": \"10.0.0.1\"}",
+        "expected_redacted": "Info: Connection from [IP_1]\nPayload: {\"ip\": \"[IP_2]\"}"
+    }
+]

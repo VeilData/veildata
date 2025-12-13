@@ -11,6 +11,8 @@ VeilData Documentation
    api
    cli
    json_traversal
+   universal_config_spec
+   datadog_integration
    benchmarks
 
 VeilData is a powerful PII redaction library that supports multiple detection methods and streaming processing for large files.

@@ -447,6 +447,74 @@ def reveal(
         )
 
 
+@app.command("pipe", help="Stream redaction from stdin to stdout.")
+def pipe(
+    config_path: Optional[str] = typer.Option(
+        None, "--config", "-c", help="Path to YAML/JSON config file"
+    ),
+    method: str = typer.Option(
+        "regex",
+        "--method",
+        "-m",
+        help="Model: regex | ner_spacy | ner_bert | hybrid",
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show logs on stderr"),
+):
+    """
+    Stream logs from standard input, redact them, and write to standard output.
+    Useful for piping logs to agents: `myapp | veildata pipe | datadog-agent`
+    """
+    import sys
+
+    from veildata.engine import build_redactor
+
+    # Redirect all verbose/console output to stderr to prevent stream corruption
+    if verbose:
+        console.file = sys.stderr
+
+    try:
+        from veildata.engine import load_config
+
+        config = load_config(config_path, verbose=verbose)
+
+        # Inject defaults if regex mode and no patterns (fixes CLI usage without config)
+        if method == "regex" and not config.get_patterns():
+            from veildata.defaults import DEFAULT_PATTERNS
+
+            config.patterns = DEFAULT_PATTERNS
+
+        redactor, _ = build_redactor(
+            method,
+            config_path=config_path,
+            verbose=verbose,
+            config=config,
+        )
+    except Exception as e:
+        print(f"[veildata] Error initialization: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        # Process line by line
+        for line in sys.stdin:
+            # We assume line-based logs.
+            # Strip newline for processing, add it back?
+            # redactor usually returns string without changing newlines if passed in?
+            # Regex redactor works on string.
+            # Ideally we pass the whole line including \n, get result, print it.
+            result = redactor(line)
+            sys.stdout.write(result)
+            sys.stdout.flush()
+    except KeyboardInterrupt:
+        sys.exit(0)
+    except BrokenPipeError:
+        # Standard unix tool behavior
+        sys.stderr.close()
+        sys.exit(0)
+    except Exception as e:
+        print(f"[veildata] Stream error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 @app.command("benchmark", help="Run performance benchmarks.")
 def benchmark(
     method: str = typer.Option(

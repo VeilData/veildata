@@ -19,9 +19,9 @@ def test_cli_json_redaction(tmp_path):
         ["redact", str(input_file), "--json", "--config", str(config_file)],
     )
     assert result.exit_code == 0
-    assert '"key": "this is a [REDACTED_1]"' in result.stdout
+    assert '"key": "this is a [TEST_1]"' in result.stdout
     assert '"items":' in result.stdout
-    assert '"[REDACTED_2] 1"' in result.stdout
+    assert '"[TEST_2] 1"' in result.stdout
 
 
 def test_cli_json_invalid(tmp_path):

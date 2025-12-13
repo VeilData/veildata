@@ -44,7 +44,7 @@ def test_e2e_redact_reveal_flow():
 
         # Verify redacted output
         redacted_content = Path("redacted.txt").read_text()
-        assert "[REDACTED_" in redacted_content
+        assert "[EMAIL_" in redacted_content
         assert "test@example.com" not in redacted_content
         assert Path("store.json").exists()
 

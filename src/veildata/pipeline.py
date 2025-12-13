@@ -85,7 +85,7 @@ class DetectionPipeline(Module):
 
             # Generate redaction token
             self.counter += 1
-            token = self.redaction_format.format(counter=self.counter)
+            token = self.redaction_format.format(counter=self.counter, label=span.label)
 
             # Record in store
             if self.store:

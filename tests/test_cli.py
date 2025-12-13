@@ -32,7 +32,7 @@ def test_phone_regex_redaction(tmp_path):
     )
 
     assert result.returncode == 0, f"STDERR: {result.stderr}"
-    assert "[REDACTED_1]" in result.stdout
+    assert "[PHONE_1]" in result.stdout
     assert "555-123-4567" not in result.stdout
 
 
@@ -50,7 +50,7 @@ def test_email_regex_redaction(tmp_path):
     )
 
     assert result.returncode == 0, f"STDERR: {result.stderr}"
-    assert "[REDACTED_1]" in result.stdout
+    assert "[EMAIL_1]" in result.stdout
     assert "test@example.com" not in result.stdout
 
 
@@ -167,7 +167,7 @@ def test_cli_redact_preview(tmp_path):
     )
     assert result.exit_code == 0
     assert "Preview" in result.stdout
-    assert "[REDACTED_1]" in result.stdout
+    assert "[TEST_1]" in result.stdout
 
 
 def test_cli_redact_explain(tmp_path):
@@ -202,7 +202,7 @@ def test_cli_reveal(tmp_path):
     assert redact_result.exit_code == 0
 
     # Then reveal
-    redacted_text = "this is a [REDACTED_1]"
+    redacted_text = "this is a [TEST_1]"
     reveal_result = runner.invoke(
         app, ["reveal", redacted_text, "--store", str(store_path)]
     )
@@ -314,7 +314,7 @@ def test_cli_reveal_with_time(tmp_path):
     assert redact_result.exit_code == 0
 
     # Then reveal with timing
-    redacted_text = "this is a [REDACTED_1]"
+    redacted_text = "this is a [TEST_1]"
     reveal_result = runner.invoke(
         app, ["reveal", redacted_text, "--store", str(store_path), "--time"]
     )
@@ -339,7 +339,7 @@ def test_basic_redaction_in_process(tmp_path):
         app, ["redact", "this is a test", "--config", str(config_file)]
     )
     assert result.exit_code == 0
-    assert "[REDACTED_1]" in result.stdout
+    assert "[TEST_1]" in result.stdout
 
 
 def test_stream_basic_in_process(tmp_path):

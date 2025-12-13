@@ -19,5 +19,5 @@ def test_wizard_regex_config(tmp_path):
     result = run_cli(["redact", input_text, "--config", str(config_file)])
 
     assert result.returncode == 0, f"STDERR: {result.stderr}"
-    assert "[REDACTED_1]" in result.stdout
+    assert "[PHONE_1]" in result.stdout
     assert "555-123-4567" not in result.stdout
