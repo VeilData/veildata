@@ -134,10 +134,11 @@ def test_cli_wizard_prompt_yes(mock_confirm, mock_wizard):
         mock_config.exists.side_effect = [False, True, True]
         mock_config.__str__.return_value = "/mock/home/.veildata/config.toml"
 
-        with patch("veildata.engine.build_redactor") as mock_build, patch(
-            "veildata.engine.load_config"
-        ) as mock_load, patch("sys.stdin") as mock_stdin:
-
+        with (
+            patch("veildata.engine.build_redactor") as mock_build,
+            patch("veildata.engine.load_config") as mock_load,
+            patch("sys.stdin") as mock_stdin,
+        ):
             mock_stdin.isatty.return_value = True
 
             mock_build.return_value = (MagicMock(), MagicMock())
