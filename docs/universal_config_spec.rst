@@ -1,6 +1,6 @@
 .. _universal-config-spec:
 
-VC-63: Universal Configuration Specification
+Universal Configuration Specification
 ============================================
 
 This document defines the **Universal Redaction Configuration** schema for VeilData.
