@@ -88,7 +88,12 @@ def build_redactor(
             # Rules mode with patterns from config
             vprint(f"Loading RegexDetector with {len(start_patterns)} patterns...")
             detector = RegexDetector(start_patterns)
-            return DetectionPipeline(detector, store=store), store
+            return (
+                DetectionPipeline(
+                    detector, store=store, redaction_format="[{label}_{counter}]"
+                ),
+                store,
+            )
 
         elif detect_mode in ["ml", "hybrid"]:
             # ML/Hybrid mode
@@ -141,7 +146,12 @@ def build_redactor(
             else:
                 detector = detectors[0]
 
-            return DetectionPipeline(detector, store=store), store
+            return (
+                DetectionPipeline(
+                    detector, store=store, redaction_format="[{label}_{counter}]"
+                ),
+                store,
+            )
 
     # Legacy / Rules Mode (no patterns in config) -> Direct Redactor Instantiation
     # Filter config for redactor kwargs
